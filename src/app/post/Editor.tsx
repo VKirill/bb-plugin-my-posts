@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 import type { Platform } from "../../shared/model";
 import { countChars, platformDef } from "../../shared/platforms";
 import { t } from "../i18n";
+import { selectionLineRect } from "./layout";
 
 export function fitTextarea(el: HTMLTextAreaElement): void {
   el.style.height = "0px";
@@ -35,7 +36,7 @@ export function Editor({
     const area = areaRef.current;
     if (area === null) return;
     const text = area.value.slice(area.selectionStart, area.selectionEnd);
-    onSelection(text, area.getBoundingClientRect(), cardRef.current?.getBoundingClientRect() ?? null);
+    onSelection(text, selectionLineRect(area, area.selectionStart), cardRef.current?.getBoundingClientRect() ?? null);
   }
 
   function wrap(before: string, after: string): void {

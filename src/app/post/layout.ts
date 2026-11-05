@@ -29,6 +29,13 @@ export interface Size {
   height: number;
 }
 
+export interface ViewportBox {
+  width: number;
+  height: number;
+  left?: number;
+  top?: number;
+}
+
 export function defaultChatWidth(paneWidth: number): number {
   return paneWidth < COMPACT_CHAT_AT ? DEFAULT_CHAT_NARROW : DEFAULT_CHAT;
 }
@@ -47,18 +54,101 @@ export function splitMode(width: number): SplitMode {
 }
 
 const TOOLBAR_GAP = 8;
+const MIRROR_STYLES = [
+  "boxSizing",
+  "width",
+  "font",
+  "fontFamily",
+  "fontSize",
+  "fontStyle",
+  "fontVariant",
+  "fontWeight",
+  "letterSpacing",
+  "lineHeight",
+  "textAlign",
+  "textIndent",
+  "textTransform",
+  "wordSpacing",
+  "tabSize",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "border",
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "whiteSpace",
+  "wordWrap",
+  "overflowWrap",
+] as const;
 
-/** Place the selection toolbar near the selection, clamped inside the editor card. */
-export function toolbarPosition(selectionRect: BoxRect, cardRect: BoxRect, toolbarSize: Size): { left: number; top: number } {
-  let left = selectionRect.left + selectionRect.width / 2 - toolbarSize.width / 2;
-  let top = selectionRect.top - toolbarSize.height - TOOLBAR_GAP;
-  const maxLeft = cardRect.right - toolbarSize.width;
-  const minLeft = cardRect.left;
+/** Caret / line box at `index` in a textarea (mirror-div measurement). */
+export function selectionLineRect(textarea: HTMLTextAreaElement, index = textarea.selectionStart): DOMRect {
+  const taRect = textarea.getBoundingClientRect();
+  const style = getComputedStyle(textarea);
+  const mirror = document.createElement("div");
+  const cs = mirror.style;
+  cs.position = "fixed";
+  cs.left = `${taRect.left}px`;
+  cs.top = `${taRect.top - textarea.scrollTop}px`;
+  cs.visibility = "hidden";
+  cs.pointerEvents = "none";
+  cs.overflow = "hidden";
+  cs.whiteSpace = "pre-wrap";
+  cs.wordWrap = "break-word";
+  cs.overflowWrap = "break-word";
+  for (const prop of MIRROR_STYLES) {
+    cs[prop] = style[prop];
+  }
+  cs.width = `${textarea.clientWidth}px`;
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b";
+  mirror.append(textarea.value.slice(0, index), marker);
+  document.body.append(mirror);
+  const mark = marker.getBoundingClientRect();
+  const lineHeight = mark.height || Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) || 20;
+  mirror.remove();
+  return new DOMRect(mark.left, mark.top, Math.max(mark.width, 1), lineHeight);
+}
+
+/** Place the selection toolbar near the selection, clamped inside the editor card (and the viewport when given). */
+export function toolbarPosition(
+  anchorRect: BoxRect,
+  columnRect: BoxRect,
+  toolbarSize: Size,
+  viewport?: ViewportBox,
+): { left: number; top: number } {
+  let left = anchorRect.left + anchorRect.width / 2 - toolbarSize.width / 2;
+  let top = anchorRect.top - toolbarSize.height - TOOLBAR_GAP;
+  if (viewport === undefined) {
+    const maxLeft = columnRect.right - toolbarSize.width;
+    const minLeft = columnRect.left;
+    left = maxLeft < minLeft ? minLeft : Math.min(Math.max(left, minLeft), maxLeft);
+    if (top < columnRect.top) top = anchorRect.bottom + TOOLBAR_GAP;
+    const maxTop = columnRect.bottom - toolbarSize.height;
+    const minTop = columnRect.top;
+    top = maxTop < minTop ? minTop : Math.min(Math.max(top, minTop), maxTop);
+    return { left, top };
+  }
+  const inset = TOOLBAR_GAP;
+  const minLeft = columnRect.left + inset;
+  const maxLeft = columnRect.right - inset - toolbarSize.width;
   left = maxLeft < minLeft ? minLeft : Math.min(Math.max(left, minLeft), maxLeft);
-  if (top < cardRect.top) top = selectionRect.bottom + TOOLBAR_GAP;
-  const maxTop = cardRect.bottom - toolbarSize.height;
-  const minTop = cardRect.top;
-  top = maxTop < minTop ? minTop : Math.min(Math.max(top, minTop), maxTop);
+  const viewTop = viewport.top ?? 0;
+  const viewBottom = viewTop + viewport.height;
+  const minTop = viewTop + inset;
+  const maxTop = viewBottom - toolbarSize.height - inset;
+  if (top < minTop) {
+    const below = anchorRect.bottom + TOOLBAR_GAP;
+    top = below + toolbarSize.height <= viewBottom - inset ? below : minTop;
+  }
+  if (maxTop < minTop) top = minTop;
+  else if (top > maxTop) top = maxTop;
+  else if (top < minTop) top = minTop;
   return { left, top };
 }
 
