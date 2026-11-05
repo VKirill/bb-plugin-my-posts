@@ -3,6 +3,7 @@ import { emptyTweet, type Tweet } from "../../shared/model";
 import { countChars, platformDef } from "../../shared/platforms";
 import { t } from "../i18n";
 import { fitTextarea } from "./Editor";
+import { selectionLineRect } from "./layout";
 
 const MAX = platformDef("x").maxTweets ?? 25;
 
@@ -30,7 +31,7 @@ export function XTwins({
 
   function emit(area: HTMLTextAreaElement): void {
     const text = area.value.slice(area.selectionStart, area.selectionEnd);
-    onSelection(text, area.getBoundingClientRect(), cardRef.current?.getBoundingClientRect() ?? null);
+    onSelection(text, selectionLineRect(area, area.selectionStart), cardRef.current?.getBoundingClientRect() ?? null);
   }
 
   return (

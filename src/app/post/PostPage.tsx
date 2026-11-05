@@ -166,7 +166,10 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
       return;
     }
     const box = (r: DOMRect) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
-    const pos = toolbarPosition(box(rect), box(card), { width: 320, height: 36 });
+    const pos = toolbarPosition(box(rect), box(card), { width: 320, height: 36 }, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
     setSel({ text, left: pos.left, top: pos.top });
   }
 
