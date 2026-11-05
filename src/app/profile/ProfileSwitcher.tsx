@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { t } from "../i18n";
+import { detectLocale, t } from "../i18n";
 import type { Profile } from "../../shared/model";
-import { initials, rememberProfileId } from "./model";
+import { initials, rememberProfileId, sourceLine } from "./model";
 import { ChevronIcon, PlusIcon } from "./icons";
 import { useGo } from "../routes";
 import { ProfileStatusPill } from "./pills";
@@ -85,10 +85,9 @@ export function ProfileSwitcher({
                 <span className="mp-truncate" style={{ display: "block", fontWeight: 500, color: "var(--foreground)" }}>
                   {profile.name}
                 </span>
-                <span className="mp-row" style={{ minHeight: "auto", padding: 0, gap: "var(--mp-s2)" }}>
-                  <ProfileStatusPill status={profile.status} />
-                </span>
+                <span className="mp-switcher-source mp-truncate">{sourceLine(profile.source, detectLocale())}</span>
               </span>
+              <ProfileStatusPill status={profile.status} />
             </button>
           ))}
           <hr className="mp-divider" />

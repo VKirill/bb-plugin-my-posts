@@ -15,7 +15,7 @@ const en = {
   allPlatforms: "All",
   overview: "Overview",
   styleChat: "Style chat",
-  rebuild: "Rebuild",
+  rebuild: "Rebuild portrait",
   stylePortrait: "Style portrait",
   layerA: "A · Measured",
   layerB: "B · Voice",
@@ -44,6 +44,14 @@ const en = {
   hintDzen: "article · title, cover, H2 headings",
   hintVk: "post with attachments · photo, poll",
   agentModel: "Agent model",
+  metricCorpus: "Corpus",
+  metricSentence: "Sentence length",
+  metricPostLen: "Post length, median",
+  metricCorpusValue: "{posts} posts · {chars}k chars",
+  metricSentenceValue: "{n} words",
+  metricPostLenValue: "{n} chars",
+  sourcePasted: "Own text",
+  sourceEmpty: "No source",
 };
 
 const ru: Record<keyof typeof en, string> = {
@@ -63,7 +71,7 @@ const ru: Record<keyof typeof en, string> = {
   allPlatforms: "Все",
   overview: "Обзор",
   styleChat: "Чат стиля",
-  rebuild: "Обновить",
+  rebuild: "Обновить портрет",
   stylePortrait: "Портрет стиля",
   layerA: "A · Измеримое",
   layerB: "B · Голос",
@@ -92,6 +100,14 @@ const ru: Record<keyof typeof en, string> = {
   hintDzen: "статья · заголовок, обложка, подзаголовки H2",
   hintVk: "пост с вложениями · фото, опрос",
   agentModel: "Модель агентов",
+  metricCorpus: "Корпус",
+  metricSentence: "Длина предложения",
+  metricPostLen: "Длина поста, медиана",
+  metricCorpusValue: "{posts} постов · {chars} тыс. знаков",
+  metricSentenceValue: "{n} слова",
+  metricPostLenValue: "{n} знаков",
+  sourcePasted: "Свой текст",
+  sourceEmpty: "Без источника",
 };
 
 export const profile = { en, ru };

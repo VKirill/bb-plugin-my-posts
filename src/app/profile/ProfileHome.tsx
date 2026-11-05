@@ -1,7 +1,7 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
 import { t } from "../i18n";
 import type { Post, Profile } from "../../shared/model";
-import { PLATFORMS, platformRules } from "../../shared/platforms";
+import { PLATFORMS } from "../../shared/platforms";
 import { railCounts, recentPosts, initials } from "./model";
 import { PlatformIcon, RefreshIcon } from "./icons";
 import { PostStatusPill, ProfileStatusPill } from "./pills";
@@ -14,6 +14,13 @@ const PLATFORM_KEYS = {
   x: "platformX",
   dzen: "platformDzen",
   vk: "platformVk",
+} as const;
+
+const HINT_KEYS = {
+  telegram: "hintTelegram",
+  x: "hintX",
+  dzen: "hintDzen",
+  vk: "hintVk",
 } as const;
 
 export function ProfileHome({
@@ -96,7 +103,7 @@ export function ProfileHome({
                     <span className="mp-grow">
                       <span className="mp-h2">{t(PLATFORM_KEYS[row.id])}</span>
                       <span className="mp-meta" style={{ display: "block" }}>
-                        {platformRules(row.id)}
+                        {t(HINT_KEYS[row.id])}
                       </span>
                     </span>
                     <span className="mp-meta">{counts[row.id]}</span>

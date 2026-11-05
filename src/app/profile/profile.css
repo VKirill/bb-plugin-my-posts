@@ -313,6 +313,23 @@
   gap: var(--mp-s2);
 }
 
+.mp-metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--mp-s2);
+  font-size: 12px;
+}
+
+.mp-metric-label {
+  color: var(--muted-foreground);
+}
+
+.mp-metric-value {
+  color: var(--foreground);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .mp-platcard {
   display: flex;
   align-items: center;
@@ -419,6 +436,12 @@
 .mp-switcher .mp-nav-item,
 .mp-switcher .mp-input {
   font-size: 13px;
+}
+
+.mp-switcher-source {
+  display: block;
+  font-size: 12px;
+  color: var(--muted-foreground);
 }
 
 .mp-switcher-search {
