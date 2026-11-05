@@ -115,6 +115,57 @@ function fill(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/gu, (match, name: string) => (name in vars ? String(vars[name]) : match));
 }
 
+function ruPlural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function formatCorpusValue(texts: number, chars: number, locale: ProfileLocale): string {
+  if (locale === "en") {
+    const postsLabel = texts === 1 ? "post" : "posts";
+    const charsPart = chars < 1000 ? `${chars} chars` : `${Math.round(chars / 1000)}k chars`;
+    return `${texts} ${postsLabel} · ${charsPart}`;
+  }
+  const postsWord = ruPlural(texts, "пост", "поста", "постов");
+  const charsPart =
+    chars < 1000
+      ? `${chars} ${ruPlural(chars, "знак", "знака", "знаков")}`
+      : `${Math.round(chars / 1000)} тыс. знаков`;
+  return `${texts} ${postsWord} · ${charsPart}`;
+}
+
+const LIST_MARKER = /^[-*]\s+|^\d+\.\s+/u;
+
+export function rulesLines(styleMd: string): string[] {
+  const lines = styleMd.split(/\r?\n/u);
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (/^##\s/u.test(line) && RULES_HEADING.test(line)) {
+      start = i + 1;
+      break;
+    }
+  }
+  if (start < 0) return [];
+
+  const result: string[] = [];
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (/^#{1,2}\s/u.test(line)) break;
+    const trimmed = line.trim();
+    if (trimmed === "") continue;
+    const stripped = trimmed.replace(LIST_MARKER, "");
+    if (stripped !== "") {
+      result.push(stripped);
+      if (result.length >= 6) break;
+    }
+  }
+  return result;
+}
+
 export function metricRows(metrics: Record<string, unknown>, locale: ProfileLocale): MetricRow[] {
   const dict = profileCopy[locale];
   const bag = metricBag(metrics);
@@ -124,7 +175,7 @@ export function metricRows(metrics: Record<string, unknown>, locale: ProfileLoca
   if (texts !== null && chars !== null) {
     rows.push({
       label: dict.metricCorpus,
-      value: fill(dict.metricCorpusValue, { posts: texts, chars: Math.round(chars / 1000) }),
+      value: formatCorpusValue(texts, chars, locale),
     });
   }
   const sentence = lookupNumber(bag, SENTENCE_KEYS);

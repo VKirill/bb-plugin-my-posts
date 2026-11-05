@@ -1,12 +1,13 @@
 import { t, useLocale } from "../i18n";
 import type { Profile } from "../../shared/model";
-import { metricRows, portraitLayers } from "./model";
+import { metricRows, portraitLayers, rulesLines } from "./model";
 import { LayerPill } from "./pills";
 
 export function PortraitCard({ profile, compact = false }: { profile: Profile; compact?: boolean }) {
   const locale = useLocale();
   const layers = portraitLayers(profile);
   const rows = metricRows(profile.metrics, locale);
+  const rules = rulesLines(profile.styleMd);
 
   return (
     <section className="mp-panel">
@@ -44,6 +45,13 @@ export function PortraitCard({ profile, compact = false }: { profile: Profile; c
             <span className="mp-h2">{t("layerC")}</span>
             <LayerPill state={layers.c} />
           </div>
+          {compact
+            ? null
+            : rules.map((line) => (
+                <span key={line} className="mp-meta">
+                  {line}
+                </span>
+              ))}
         </div>
       </div>
     </section>
