@@ -1,0 +1,122 @@
+import type { BbPluginApi } from "@get-bb/plugin-sdk";
+import { rpcContract } from "../shared/contract";
+import type { Post, Profile } from "../shared/model";
+import type { Store } from "./store";
+
+export interface SessionStarter {
+  startProfileSession(profile: Profile): Promise<string>;
+  startPostSession(post: Post, brief: string | null): Promise<string>;
+}
+
+export const noopSessions: SessionStarter = {
+  async startProfileSession() {
+    return "";
+  },
+  async startPostSession() {
+    return "";
+  },
+};
+
+export type ChangedPayload = { profileId?: string; postId?: string };
+
+export function registerRpc(
+  bb: BbPluginApi,
+  store: Store,
+  sessions: SessionStarter,
+  changed: (payload: ChangedPayload) => void,
+): void {
+  bb.rpc.register(rpcContract, {
+    profiles_list: () => ({ profiles: store.listProfiles() }),
+
+    profile_get: ({ id }) => store.getProfile(id),
+
+    profile_create: async ({ name, source }) => {
+      const created = store.createProfile({ name, source, status: "building" });
+      const styleThreadId = await sessions.startProfileSession(created);
+      const profile = store.updateProfile(created.id, { styleThreadId: styleThreadId === "" ? null : styleThreadId });
+      changed({ profileId: profile.id });
+      return profile;
+    },
+
+    profile_update: ({ id, name }) => {
+      const profile = store.updateProfile(id, name === undefined ? {} : { name });
+      changed({ profileId: profile.id });
+      return profile;
+    },
+
+    profile_delete: ({ id }) => {
+      store.deleteProfile(id);
+      changed({ profileId: id });
+      return { id };
+    },
+
+    posts_list: ({ profileId, platform }) => ({ posts: store.listPosts(profileId, platform) }),
+
+    post_create: async ({ profileId, platform, kind, brief }) => {
+      const title = brief === undefined || brief.trim() === "" ? "Untitled" : brief.trim().slice(0, 60);
+      const created = store.createPost({
+        profileId,
+        platform,
+        kind,
+        title,
+        status: "writing",
+      });
+      const threadId = await sessions.startPostSession(created, brief ?? null);
+      const post = store.updatePost(created.id, { threadId: threadId === "" ? null : threadId });
+      changed({ profileId: post.profileId, postId: post.id });
+      return post;
+    },
+
+    post_get: ({ id }) => ({
+      post: store.getPost(id),
+      proposals: store.listProposals(id),
+    }),
+
+    post_update: ({ id, title, body, tweets, status }) => {
+      const post = store.updatePost(id, {
+        ...(title === undefined ? {} : { title }),
+        ...(body === undefined ? {} : { body }),
+        ...(tweets === undefined ? {} : { tweets }),
+        ...(status === undefined ? {} : { status }),
+      });
+      changed({ profileId: post.profileId, postId: post.id });
+      return post;
+    },
+
+    proposal_apply: ({ id }) => {
+      const result = store.applyProposal(id);
+      changed({ profileId: result.post.profileId, postId: result.post.id });
+      return result;
+    },
+
+    proposal_reject: ({ id }) => {
+      const proposal = store.setProposalStatus(id, "rejected");
+      const post = store.getPost(proposal.postId);
+      changed({ profileId: post.profileId, postId: post.id });
+      return proposal;
+    },
+
+    chat_send: async ({ threadId, text }) => {
+      await bb.sdk.threads.send({
+        threadId,
+        input: [{ type: "text", text, mentions: [] }],
+        mode: "auto",
+      });
+      const post = store.postByThread(threadId);
+      const profile = post === null ? store.profileByThread(threadId) : store.getProfile(post.profileId);
+      changed({
+        ...(profile === null ? {} : { profileId: profile.id }),
+        ...(post === null ? {} : { postId: post.id }),
+      });
+      return { ok: true as const };
+    },
+
+    settings_get: () => store.getSettings(),
+
+    settings_set: (patch) => {
+      const settings = store.setSettings(patch);
+      changed({});
+      return settings;
+    },
+  });
+}
