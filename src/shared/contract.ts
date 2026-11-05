@@ -11,7 +11,7 @@ import {
   tweetSchema,
 } from "./model";
 
-export const MP_CHANGED = "my-posts:changed";
+export { MP_CHANGED } from "./events";
 
 export const rpcContract = defineRpcContract({
   profiles_list: {
