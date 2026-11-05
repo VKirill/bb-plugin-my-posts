@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
-import { MP_CHANGED, type RpcContract } from "../shared/contract";
+import type { RpcContract } from "../shared/contract";
+import { MP_CHANGED } from "../shared/events";
 import type { Platform } from "../shared/model";
 
 export function useMpRpc() {
