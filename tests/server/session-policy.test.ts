@@ -31,14 +31,14 @@ describe("mpSessionPolicy", () => {
   it("allows only style-portrait for profile sessions", () => {
     expect(mpSessionPolicy("profile").skills).toEqual({
       mode: "allow",
-      names: ["my-posts:style-portrait"],
+      names: ["style-portrait"],
     });
   });
 
   it("allows writing-in-style and style-portrait for post sessions", () => {
     expect(mpSessionPolicy("post").skills).toEqual({
       mode: "allow",
-      names: ["my-posts:writing-in-style", "my-posts:style-portrait"],
+      names: ["writing-in-style", "style-portrait"],
     });
   });
 });
@@ -57,7 +57,7 @@ describe("sessionPolicyField", () => {
     });
     expect(wrapped.policy.skills).toEqual({
       mode: "allow",
-      names: ["my-posts:style-portrait"],
+      names: ["style-portrait"],
     });
     expect(wrapped.policy.mcpServers).toEqual({ mode: "allow", names: ["bb-bridge"] });
     expect(wrapped.policy.nativePlugins).toEqual({ mode: "allow", names: [] });
@@ -71,7 +71,7 @@ describe("sessionPolicyField", () => {
     const policy = (field.experimental_vkRequiredSessionPolicy as { policy: { skills: unknown } }).policy;
     expect(policy.skills).toEqual({
       mode: "allow",
-      names: ["my-posts:writing-in-style", "my-posts:style-portrait"],
+      names: ["writing-in-style", "style-portrait"],
     });
   });
 
@@ -89,9 +89,15 @@ describe("sessionPolicyField", () => {
     expect(policy.projectInstructions).toBeUndefined();
     expect(policy.claudeAiSync).toBeUndefined();
     expect(policy.userInstructions).toBe(false);
-    expect(policy.bbPlugins).toBeDefined();
-    expect(policy.skills).toBeDefined();
-    expect(policy.mcpServers).toBeDefined();
+    expect(policy.bbPlugins).toEqual({
+      mode: "allow",
+      names: ["my-posts", "environment-project-checkout", "project-folders"],
+    });
+    expect(policy.skills).toEqual({
+      mode: "allow",
+      names: ["style-portrait"],
+    });
+    expect(policy.mcpServers).toEqual({ mode: "allow", names: ["bb-bridge"] });
   });
 
   it("returns {} when agents lack the capability", () => {
@@ -142,5 +148,9 @@ describe("createSessions session policy", () => {
     const args = spawn.mock.calls[0]![0] as Record<string, unknown>;
     const policyWrap = args.experimental_vkRequiredSessionPolicy as { version: number };
     expect(policyWrap.version).toBe(1);
+    expect(args.experimental_vkRequiredSessionPolicy).toEqual({
+      version: 1,
+      policy: mpSessionPolicy("profile"),
+    });
   });
 });
