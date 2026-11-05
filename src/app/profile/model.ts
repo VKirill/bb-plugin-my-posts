@@ -1,5 +1,6 @@
 import type { Platform, Post, PostKind, Profile, ProfileStatus } from "../../shared/model";
 import { platformDef } from "../../shared/platforms";
+import type { Route } from "../routes";
 
 export type LayerState = "ready" | "running" | "waiting";
 
@@ -58,6 +59,10 @@ export function canCreatePost(platform: Platform, kind: PostKind): boolean {
 export function kindForNewPost(platform: Platform, article: boolean): PostKind {
   if (article) return "article";
   return platformDef(platform).defaultKind;
+}
+
+export function afterCreateRoute(profile: Profile): Route {
+  return { kind: "profile", profileId: profile.id, tab: "voice" };
 }
 
 export function rememberProfileId(id: string): void {

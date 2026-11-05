@@ -28,12 +28,19 @@ export function ProfileSwitcher({
     const onDoc = (event: MouseEvent) => {
       if (rootRef.current !== null && !rootRef.current.contains(event.target as Node)) setOpen(false);
     };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className="mp-switcher-wrap">
       <button
         type="button"
         className="mp-switch"
@@ -66,7 +73,7 @@ export function ProfileSwitcher({
               type="button"
               className="mp-nav-item"
               role="menuitem"
-              aria-selected={current?.id === profile.id}
+              aria-current={current?.id === profile.id ? "true" : undefined}
               onClick={() => {
                 rememberProfileId(profile.id);
                 setOpen(false);

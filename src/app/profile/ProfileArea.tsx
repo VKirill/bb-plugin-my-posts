@@ -3,7 +3,7 @@ import "./profile.css";
 import { t, useLocale } from "../i18n";
 import { usePosts, useProfile, useProfiles } from "../data";
 import { useGo, type Route } from "../routes";
-import { lastProfileId, rememberProfileId } from "./model";
+import { afterCreateRoute, lastProfileId, rememberProfileId } from "./model";
 import { CreateProfile } from "./CreateProfile";
 import { NewPostDialog } from "./NewPostDialog";
 import { ProfileHome } from "./ProfileHome";
@@ -28,6 +28,11 @@ export function ProfileArea({ route }: { route: Route }) {
     rememberProfileId(id);
     go({ kind: "profile", profileId: id }, { replace: true });
   }, [go, profiles, profilesQuery.loading, route.kind]);
+
+  useEffect(() => {
+    if (route.kind !== "create-profile") return;
+    setCreated(null);
+  }, [route.kind]);
 
   const listedId = route.kind === "profile" ? route.profileId : lastProfileId(profiles);
   const queryId = (creating ? created?.id : listedId) ?? "prf_none";
@@ -103,10 +108,11 @@ export function ProfileArea({ route }: { route: Route }) {
           </main>
         ) : creating ? (
           <CreateProfile
-            profile={liveProfile}
+            profile={null}
             onCreated={(profile) => {
               setCreated(profile);
               rememberProfileId(profile.id);
+              go(afterCreateRoute(profile));
             }}
           />
         ) : current === null ? (

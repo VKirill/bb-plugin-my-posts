@@ -10,7 +10,7 @@ import { t } from "../i18n";
 import { useMpRpc } from "../data";
 import { useGo } from "../routes";
 import type { Platform } from "../../shared/model";
-import { PLATFORMS, platformRules } from "../../shared/platforms";
+import { PLATFORMS } from "../../shared/platforms";
 import { canCreatePost, kindForNewPost } from "./model";
 import { PlatformIcon } from "./icons";
 
@@ -19,6 +19,13 @@ const PLATFORM_KEYS = {
   x: "platformX",
   dzen: "platformDzen",
   vk: "platformVk",
+} as const;
+
+const HINT_KEYS = {
+  telegram: "hintTelegram",
+  x: "hintX",
+  dzen: "hintDzen",
+  vk: "hintVk",
 } as const;
 
 export function NewPostDialog({
@@ -63,7 +70,7 @@ export function NewPostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideCloseButton className="mp-card" style={{ padding: "var(--mp-pad-card)", gap: "var(--mp-gap)" }}>
+      <DialogContent hideCloseButton className="mp-portal">
         <DialogHeader className="flex-row items-center gap-2">
           <DialogTitle>{t("newPostTitle")}</DialogTitle>
           <span className="mp-grow" />
@@ -104,11 +111,11 @@ export function NewPostDialog({
               >
                 <PlatformIcon platform={row.id} label={t(PLATFORM_KEYS[row.id])} />
                 <span>{t(PLATFORM_KEYS[row.id])}</span>
-                <span className="mp-plat-rules">{platformRules(row.id)}</span>
               </button>
             );
           })}
         </div>
+        <p className="mp-plat-rules">{t(HINT_KEYS[platform])}</p>
         <div className="mp-field">
           <label htmlFor="mp-brief">{t("briefLabel")}</label>
           <textarea

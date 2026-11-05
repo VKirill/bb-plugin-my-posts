@@ -388,19 +388,28 @@
   margin: 0 var(--mp-s3) var(--mp-s3);
 }
 
+.mp-switcher-wrap {
+  position: relative;
+}
+
 .mp-switcher {
   position: absolute;
   z-index: 20;
-  top: 64px;
-  left: var(--mp-s3);
+  top: 100%;
+  left: 0;
   width: 312px;
-  max-height: min(420px, calc(100% - 72px));
+  max-height: 360px;
   overflow: auto;
   padding: var(--mp-s1);
   border: 1px solid var(--mp-hairline);
   border-radius: 12px;
   background-color: var(--popover, var(--mp-card));
   box-shadow: var(--mp-raise);
+}
+
+.mp-switcher .mp-nav-item,
+.mp-switcher .mp-input {
+  font-size: 13px;
 }
 
 .mp-switcher-search {
