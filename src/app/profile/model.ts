@@ -73,6 +73,11 @@ export function afterCreateRoute(profile: Profile): Route {
   return { kind: "profile", profileId: profile.id, tab: "voice" };
 }
 
+export function createDialogExitRoute(lastId: string | null): Route {
+  if (lastId === null) return { kind: "home" };
+  return { kind: "profile", profileId: lastId };
+}
+
 const TEXTS_KEYS = ["texts", "posts"] as const;
 const CHARS_KEYS = ["chars", "characters"] as const;
 const SENTENCE_KEYS = ["sentenceLength", "sentence_length", "sentence_words_mean", "avgSentence"] as const;
