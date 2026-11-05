@@ -13,6 +13,9 @@ import {
 
 export { MP_CHANGED } from "./events";
 
+export const kickoffLocaleSchema = z.enum(["ru", "en"]);
+export type KickoffLocale = z.infer<typeof kickoffLocaleSchema>;
+
 export const rpcContract = defineRpcContract({
   profiles_list: {
     input: z.null(),
@@ -26,6 +29,7 @@ export const rpcContract = defineRpcContract({
     input: z.object({
       name: z.string().trim().min(1).max(120),
       source: z.string().max(4000).optional(),
+      locale: kickoffLocaleSchema.optional(),
     }),
     output: profileSchema,
   },
@@ -53,6 +57,7 @@ export const rpcContract = defineRpcContract({
       platform: platformSchema,
       kind: postKindSchema.optional(),
       brief: z.string().max(8000).optional(),
+      locale: kickoffLocaleSchema.optional(),
     }),
     output: postSchema,
   },
