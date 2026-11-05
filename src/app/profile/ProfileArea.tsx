@@ -3,8 +3,8 @@ import "./profile.css";
 import { t, useLocale } from "../i18n";
 import { usePosts, useProfile, useProfiles } from "../data";
 import { useGo, type Route } from "../routes";
-import { afterCreateRoute, lastProfileId, rememberProfileId } from "./model";
-import { CreateProfile } from "./CreateProfile";
+import { afterCreateRoute, createDialogExitRoute, lastProfileId, rememberProfileId } from "./model";
+import { CreateProfileDialog } from "./CreateProfileDialog";
 import { NewPostDialog } from "./NewPostDialog";
 import { ProfileHome } from "./ProfileHome";
 import { Rail } from "./Rail";
@@ -15,9 +15,8 @@ export function ProfileArea({ route }: { route: Route }) {
   const go = useGo();
   const profilesQuery = useProfiles();
   const profiles = profilesQuery.data?.profiles ?? [];
-  const creating = route.kind === "create-profile";
-  const [created, setCreated] = useState<Profile | null>(null);
-  const [pane, setPane] = useState<"posts" | "voice">(creating ? "voice" : "posts");
+  const createDialogOpen = route.kind === "create-profile";
+  const [pane, setPane] = useState<"posts" | "voice">("posts");
   const [newPostOpen, setNewPostOpen] = useState(false);
 
   useEffect(() => {
@@ -29,18 +28,13 @@ export function ProfileArea({ route }: { route: Route }) {
     go({ kind: "profile", profileId: id }, { replace: true });
   }, [go, profiles, profilesQuery.loading, route.kind]);
 
-  useEffect(() => {
-    if (route.kind !== "create-profile") return;
-    setCreated(null);
-  }, [route.kind]);
-
   const listedId = route.kind === "profile" ? route.profileId : lastProfileId(profiles);
-  const queryId = (creating ? created?.id : listedId) ?? "prf_none";
+  const queryId = listedId ?? "prf_none";
   const profileQuery = useProfile(queryId);
   const postsQuery = usePosts(queryId);
   const liveProfile: Profile | null =
-    queryId === "prf_none" ? null : (profileQuery.data ?? created ?? profiles.find((row) => row.id === queryId) ?? null);
-  const current = creating ? liveProfile : (liveProfile ?? profiles.find((row) => row.id === listedId) ?? null);
+    queryId === "prf_none" ? null : (profileQuery.data ?? profiles.find((row) => row.id === queryId) ?? null);
+  const current = liveProfile ?? profiles.find((row) => row.id === listedId) ?? null;
   const posts = postsQuery.data?.posts ?? [];
 
   if (profilesQuery.loading && profiles.length === 0) {
@@ -57,7 +51,11 @@ export function ProfileArea({ route }: { route: Route }) {
     );
   }
 
-  const empty = profiles.length === 0 && !creating && created === null;
+  const empty = profiles.length === 0;
+
+  function closeCreateDialog() {
+    go(createDialogExitRoute(lastProfileId(profiles)));
+  }
 
   return (
     <div className="mp-profile">
@@ -89,7 +87,7 @@ export function ProfileArea({ route }: { route: Route }) {
           current={current}
           posts={posts}
           route={route}
-          creating={creating}
+          creating={false}
           onNewPost={() => setNewPostOpen(true)}
         />
         {empty ? (
@@ -106,15 +104,6 @@ export function ProfileArea({ route }: { route: Route }) {
               </div>
             </div>
           </main>
-        ) : creating ? (
-          <CreateProfile
-            profile={null}
-            onCreated={(profile) => {
-              setCreated(profile);
-              rememberProfileId(profile.id);
-              go(afterCreateRoute(profile));
-            }}
-          />
         ) : current === null ? (
           <main className="mp-centre">
             <p className="mp-meta" style={{ padding: "var(--mp-pad-page)" }}>
@@ -133,9 +122,19 @@ export function ProfileArea({ route }: { route: Route }) {
           />
         )}
       </div>
-      {current !== null && !creating ? (
+      {current !== null ? (
         <NewPostDialog open={newPostOpen} onOpenChange={setNewPostOpen} profileId={current.id} />
       ) : null}
+      <CreateProfileDialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeCreateDialog();
+        }}
+        onCreated={(profile) => {
+          rememberProfileId(profile.id);
+          go(afterCreateRoute(profile));
+        }}
+      />
     </div>
   );
 }
