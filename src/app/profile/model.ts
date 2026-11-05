@@ -1,6 +1,14 @@
 import type { Platform, Post, PostKind, Profile, ProfileStatus } from "../../shared/model";
 import { platformDef } from "../../shared/platforms";
+import { profile as profileCopy } from "../i18n/profile";
 import type { Route } from "../routes";
+
+export type ProfileLocale = "en" | "ru";
+
+export interface MetricRow {
+  label: string;
+  value: string;
+}
 
 export type LayerState = "ready" | "running" | "waiting";
 
@@ -63,6 +71,86 @@ export function kindForNewPost(platform: Platform, article: boolean): PostKind {
 
 export function afterCreateRoute(profile: Profile): Route {
   return { kind: "profile", profileId: profile.id, tab: "voice" };
+}
+
+const TEXTS_KEYS = ["texts", "posts"] as const;
+const CHARS_KEYS = ["chars", "characters"] as const;
+const SENTENCE_KEYS = ["sentenceLength", "sentence_length", "sentence_words_mean", "avgSentence"] as const;
+const POSTLEN_KEYS = ["medianPostLength", "median_post_length", "text_chars_median", "postLengthMedian"] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function lookupNumber(bag: Record<string, unknown>, keys: readonly string[]): number | null {
+  for (const key of keys) {
+    const parsed = asNumber(bag[key]);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
+function metricBag(metrics: Record<string, unknown>): Record<string, unknown> {
+  const bag: Record<string, unknown> = { ...metrics };
+  if (isRecord(metrics.meta)) Object.assign(bag, metrics.meta);
+  if (isRecord(metrics.geometry)) Object.assign(bag, metrics.geometry);
+  return bag;
+}
+
+function formatDecimal(n: number, locale: ProfileLocale): string {
+  const text = Number.isInteger(n) ? String(n) : n.toFixed(1);
+  return locale === "ru" ? text.replace(".", ",") : text;
+}
+
+function fill(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/gu, (match, name: string) => (name in vars ? String(vars[name]) : match));
+}
+
+export function metricRows(metrics: Record<string, unknown>, locale: ProfileLocale): MetricRow[] {
+  const dict = profileCopy[locale];
+  const bag = metricBag(metrics);
+  const rows: MetricRow[] = [];
+  const texts = lookupNumber(bag, TEXTS_KEYS);
+  const chars = lookupNumber(bag, CHARS_KEYS);
+  if (texts !== null && chars !== null) {
+    rows.push({
+      label: dict.metricCorpus,
+      value: fill(dict.metricCorpusValue, { posts: texts, chars: Math.round(chars / 1000) }),
+    });
+  }
+  const sentence = lookupNumber(bag, SENTENCE_KEYS);
+  if (sentence !== null) {
+    rows.push({
+      label: dict.metricSentence,
+      value: fill(dict.metricSentenceValue, { n: formatDecimal(sentence, locale) }),
+    });
+  }
+  const postLen = lookupNumber(bag, POSTLEN_KEYS);
+  if (postLen !== null) {
+    rows.push({
+      label: dict.metricPostLen,
+      value: fill(dict.metricPostLenValue, { n: formatDecimal(postLen, locale) }),
+    });
+  }
+  return rows;
+}
+
+const SOURCE_URL = /^(https?:\/\/|t\.me\/)/iu;
+
+export function sourceLine(source: string, locale: ProfileLocale): string {
+  const trimmed = source.trim();
+  if (trimmed === "") return profileCopy[locale].sourceEmpty;
+  if (SOURCE_URL.test(trimmed)) return trimmed;
+  return profileCopy[locale].sourcePasted;
 }
 
 export function rememberProfileId(id: string): void {

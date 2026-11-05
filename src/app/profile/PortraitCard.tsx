@@ -1,11 +1,12 @@
-import { t } from "../i18n";
+import { t, useLocale } from "../i18n";
 import type { Profile } from "../../shared/model";
-import { portraitLayers } from "./model";
+import { metricRows, portraitLayers } from "./model";
 import { LayerPill } from "./pills";
 
 export function PortraitCard({ profile, compact = false }: { profile: Profile; compact?: boolean }) {
+  const locale = useLocale();
   const layers = portraitLayers(profile);
-  const metricEntries = Object.entries(profile.metrics).slice(0, 6);
+  const rows = metricRows(profile.metrics, locale);
 
   return (
     <section className="mp-panel">
@@ -18,10 +19,11 @@ export function PortraitCard({ profile, compact = false }: { profile: Profile; c
           </div>
           {compact
             ? null
-            : metricEntries.map(([key, value]) => (
-                <span key={key} className="mp-meta">
-                  {key}: {typeof value === "string" || typeof value === "number" ? String(value) : JSON.stringify(value)}
-                </span>
+            : rows.map((row) => (
+                <div key={row.label} className="mp-metric">
+                  <span className="mp-metric-label">{row.label}</span>
+                  <span className="mp-metric-value">{row.value}</span>
+                </div>
               ))}
         </div>
         <div className="mp-layer">
