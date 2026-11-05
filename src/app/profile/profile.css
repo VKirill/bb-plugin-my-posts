@@ -61,6 +61,15 @@
   gap: var(--mp-s1);
 }
 
+.mp-rail-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mp-s2);
+  padding-top: var(--mp-s2);
+  border-top: 1px solid var(--mp-hairline);
+}
+
 .mp-menu-label {
   padding: var(--mp-s1) var(--mp-s2) 0;
   color: var(--muted-foreground);

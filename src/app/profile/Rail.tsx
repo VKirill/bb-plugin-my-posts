@@ -5,6 +5,7 @@ import { railCounts } from "./model";
 import { PlatformIcon, PlusIcon } from "./icons";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { PostStatusPill } from "./pills";
+import { AgentModel } from "../settings/AgentModel";
 import { useGo, type Route } from "../routes";
 
 const PLATFORM_KEYS = {
@@ -102,6 +103,7 @@ export function Rail({
       ) : (
         <p className="mp-meta mp-note">{creating ? t("createRailNote") : t("emptyRailNote")}</p>
       )}
+      <AgentModel />
     </aside>
   );
 }
