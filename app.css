@@ -1,0 +1,146 @@
+/*
+ * MyPosts in the Pokecut look. Kit: docs/DESIGN.md (pokecut-plugin.css), prefix mp-.
+ * The --mp-* colour tokens read the theme's --pk-* tokens and fall back to BB's
+ * own palette. Spacing tokens on .mp-app are concrete px, never var(--spacing).
+ */
+[data-bb-plugin="my-posts"],
+[data-bb-plugin-root]:not([data-bb-plugin]) {
+  --mp-well: var(--pk-well, color-mix(in oklab, var(--muted) 45%, var(--card)));
+  --mp-card: var(--pk-card, var(--card));
+  --mp-outline: var(--pk-outline, var(--input));
+  --mp-hairline: var(--pk-hairline, var(--border));
+  --mp-drop: var(--pk-drop, 0 1px 2px rgb(0 0 0 / 0.06));
+  --mp-card-drop: var(--pk-card-drop, none);
+  --mp-raise: 0 1px 3px 0 rgb(0 0 0 / 0.12);
+  --mp-accent: var(--pk-accent-gradient, linear-gradient(var(--primary), var(--primary)));
+  --mp-accent-edge: var(--pk-accent-edge, none);
+  --mp-success: var(--success, #3fae4a);
+  --mp-success-text: var(--diff-added, #2f8a45);
+  --mp-info: var(--timeline-accent, #3e7be8);
+  --mp-warning: var(--warning, #e8a33d);
+  --mp-warning-text: var(--warning-text, #b4540f);
+  --mp-danger-text: var(--destructive-text, var(--destructive));
+}
+
+.mp-app {
+  --mp-gap: 16px;
+  --mp-gap-sm: 8px;
+  --mp-pad-page: 24px;
+  --mp-pad-card: 20px;
+  --mp-rail-w: 240px;
+  --mp-chat-w: 400px;
+  --mp-crumb-h: 48px;
+  --mp-text-col: 712px;
+  min-height: 0;
+  height: 100%;
+}
+
+@layer components {
+  .mp-card {
+    min-width: 0;
+    padding: var(--mp-pad-card, 20px);
+    border: 1px solid var(--mp-hairline);
+    border-radius: 14px;
+    background-color: var(--mp-card);
+    box-shadow: var(--mp-drop);
+  }
+
+  .mp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--mp-outline);
+    border-radius: 8px;
+    background-color: var(--mp-card);
+    box-shadow: var(--mp-drop);
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .mp-btn-primary {
+    border-color: transparent;
+    background-color: var(--primary);
+    background-image: var(--mp-accent);
+    box-shadow: var(--mp-accent-edge);
+    color: #ffffff;
+  }
+
+  .mp-btn-primary:hover:not(:disabled) {
+    filter: brightness(1.05) saturate(1.05);
+  }
+
+  .mp-input {
+    height: 32px;
+    width: 100%;
+    padding: 0 12px;
+    border: 1px solid var(--mp-outline);
+    border-radius: 8px;
+    background-color: var(--mp-card);
+    box-shadow: var(--mp-drop);
+    color: var(--foreground);
+  }
+
+  .mp-seg {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--mp-hairline);
+    border-radius: 9px;
+    background-color: var(--mp-well);
+  }
+
+  .mp-seg-item {
+    border-radius: 6px;
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
+
+  .mp-seg-item:hover {
+    color: var(--foreground);
+  }
+
+  .mp-seg-item:is([data-state="active"], [aria-pressed="true"]) {
+    background-color: var(--mp-card);
+    box-shadow: var(--mp-raise);
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .mp-nav-item {
+    border-radius: 8px;
+    color: var(--muted-foreground);
+  }
+
+  .mp-nav-item:hover {
+    color: var(--foreground);
+  }
+
+  .mp-nav-item:is([aria-selected="true"], [aria-current="page"]) {
+    background-color: var(--mp-card);
+    box-shadow: inset 0 0 0 1px var(--mp-outline), var(--mp-drop);
+    color: var(--foreground);
+  }
+
+  .mp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .mp-pill-success { background-color: color-mix(in oklab, var(--mp-success) 14%, transparent); color: var(--mp-success-text); }
+  .mp-pill-info { background-color: color-mix(in oklab, var(--mp-info) 13%, transparent); color: var(--mp-info); }
+  .mp-pill-warning { background-color: color-mix(in oklab, var(--mp-warning) 16%, transparent); color: var(--mp-warning-text); }
+  .mp-pill-muted { background-color: color-mix(in oklab, var(--foreground) 7%, transparent); color: var(--foreground); }
+}

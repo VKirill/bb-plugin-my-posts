@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyPosts · A2 · Студия: пост + чат</title>
+<style>
+/*
+ * MyPosts prototype kit. Host emulation (BB + Pokecut theme tokens) and the
+ * Pokecut plugin classes from docs/design/pokecut-plugin.css with the mp- prefix.
+ * In the real plugin the host block below is NOT shipped: BB provides it.
+ */
+
+/* ---------- 1. Host emulation: BB tokens as the Pokecut theme sets them ---------- */
+:root {
+  --canvas: #fafafa; --ink: #393846; --foreground: var(--ink); --background: var(--canvas);
+  --primary: #9b4d8f; --primary-foreground: #ffffff;
+  --card: #ffffff; --popover: #ffffff; --muted: #ebebeb; --muted-foreground: #5e5e5e;
+  --timeline-accent: #3e7be8; --destructive: #d93a2b; --destructive-text: #c2412d;
+  --warning: #f08c1a; --warning-text: #b4540f; --success: #3fae4a; --diff-added: #2f8a45;
+  --border: #d6d6d6; --input: #cfcfcf; --ring: color-mix(in oklab, var(--primary) 70%, var(--canvas));
+  --state-hover: color-mix(in oklab, var(--ink) 5%, transparent);
+  --surface-selected: color-mix(in oklab, var(--primary) 12%, transparent);
+  --shadow-lg: 0 14px 28px -8px rgb(0 0 0 / 0.14);
+  --pk-shell: #ededed; --pk-panel: var(--canvas); --pk-card: #ffffff; --pk-well: #f5f5f5;
+  --pk-outline: #cfcfcf; --pk-hairline: #eaeceb;
+  --pk-drop: 0 8px 16px -4px #dedede; --pk-card-drop: 0 18px 20px -24px #dedede;
+  --pk-accent-gradient:
+    radial-gradient(80% 130% at 27% 16%, rgb(240 168 192 / 0.8) 0%, rgb(240 168 192 / 0) 58%),
+    linear-gradient(101deg, #d96d98 0%, #d27aa2 38%, #aa79bf 71%, #8c69c3 100%);
+  --pk-accent-edge: inset 0 -4.5px 1px -4px rgb(255 255 255 / 0.3);
+  color-scheme: light;
+}
+:root.dark {
+  --canvas: #16181d; --ink: #dcdde2; --primary: #d88bc4; --primary-foreground: #16181d;
+  --card: #1b1e24; --popover: #1f232a; --muted: #262a32; --muted-foreground: #9b9ea6;
+  --timeline-accent: #6b9bf5; --destructive: #e5534b; --destructive-text: #f08a80;
+  --warning: #f0a040; --warning-text: #f2b46a; --success: #57c46a; --diff-added: #57c46a;
+  --border: #3a3f49; --input: #3a3f49;
+  --state-hover: color-mix(in oklab, var(--ink) 6%, transparent);
+  --surface-selected: color-mix(in oklab, var(--primary) 14%, transparent);
+  --shadow-lg: 0 14px 28px -8px rgb(0 0 0 / 0.6);
+  --pk-shell: #0e1014; --pk-card: #1b1e24; --pk-well: #1f232a; --pk-outline: #3a3f49; --pk-hairline: #282d35;
+  --pk-drop: 0 8px 16px -4px rgb(0 0 0 / 0.5); --pk-card-drop: 0 18px 20px -24px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  display: flex; flex-direction: column; height: 100vh; min-height: 640px;
+  background: var(--pk-shell); color: var(--foreground);
+  font: 14px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+svg.ico { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ico-14 svg.ico, svg.ico.s14 { width: 14px; height: 14px; }
+.ico-20 svg.ico { width: 20px; height: 20px; }
+
+/* ---------- 2. Prototype chrome (not part of the plugin) ---------- */
+.proto-bar {
+  position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; flex-shrink: 0; scrollbar-width: thin; align-items: center; gap: 8px;
+  padding: 8px 16px; border-bottom: 1px dashed var(--pk-outline); background: var(--pk-shell); font-size: 12px;
+}
+.proto-bar .proto-name { font-weight: 600; margin-right: 8px; }
+.proto-bar .proto-group { display: inline-flex; align-items: center; gap: 4px; }
+.proto-bar .proto-label { color: var(--muted-foreground); margin-right: 2px; }
+.proto-bar .proto-sep { flex: 1; }
+.proto-bar button { height: 26px; padding: 0 8px; border-radius: 6px; }
+.proto-warn { color: var(--destructive-text); font-weight: 600; }
+.proto-note { color: var(--muted-foreground); }
+
+/* BB window: a collapsed BB sidebar stub + the workspace pane that hosts the plugin. */
+.bb-shell { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px; }
+.bb-side { width: 44px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 8px; color: var(--muted-foreground); }
+.bb-side span { width: 28px; height: 28px; border-radius: 8px; background: color-mix(in oklab, var(--foreground) 7%, transparent); }
+.bb-side span.on { background: var(--pk-card); box-shadow: inset 0 0 0 1px var(--pk-outline); }
+.bb-pane {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; margin: 0 auto;
+  border: 1px solid var(--pk-hairline); border-radius: 20px; background: var(--pk-panel); box-shadow: var(--pk-drop); overflow: hidden;
+}
+.bb-pane[data-w="1200"] { flex: 0 1 1200px; }
+.bb-pane[data-w="900"] { flex: 0 1 900px; }
+.bb-pane[data-w="420"] { flex: 0 1 420px; }
+.bb-pane-head { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-bottom: 1px solid var(--pk-hairline); font-size: 13px; font-weight: 500; flex-shrink: 0; }
+.bb-pane-head .bb-dot { width: 18px; height: 18px; border-radius: 6px; background-image: var(--pk-accent-gradient); }
+.bb-pane-head .bb-crumb { color: var(--muted-foreground); font-weight: 400; }
+
+/* ---------- 3. Plugin root: tokens (Pokecut with BB fallbacks) + spacing scale ---------- */
+.mp-app {
+  --mp-well: var(--pk-well, color-mix(in oklab, var(--muted) 45%, var(--card)));
+  --mp-card: var(--pk-card, var(--card));
+  --mp-outline: var(--pk-outline, var(--input));
+  --mp-hairline: var(--pk-hairline, var(--border));
+  --mp-drop: var(--pk-drop, 0 1px 2px rgb(0 0 0 / 0.06));
+  --mp-card-drop: var(--pk-card-drop, none);
+  --mp-raise: 0 1px 3px 0 rgb(0 0 0 / 0.12);
+  --mp-accent: var(--pk-accent-gradient, linear-gradient(var(--primary), var(--primary)));
+  --mp-accent-edge: var(--pk-accent-edge, none);
+  --mp-success: var(--success, #3fae4a);
+  --mp-success-text: var(--diff-added, #2f8a45);
+  --mp-info: var(--timeline-accent, #3e7be8);
+  --mp-warning: var(--warning, #e8a33d);
+  --mp-warning-text: var(--warning-text, #b4540f);
+  --mp-danger-text: var(--destructive-text, var(--destructive));
+  /* Spacing: concrete px, never var(--spacing) (BB Tailwind v4 = 4px). */
+  --mp-s1: 4px; --mp-s2: 8px; --mp-s3: 12px; --mp-gap: 16px; --mp-card-pad: 20px; --mp-page-pad: 24px;
+  container-type: inline-size; container-name: mp;
+  position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column;
+}
+.mp-layout { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Surfaces */
+.mp-panel { min-width: 0; max-width: 100%; padding: 4px; border: 1px solid var(--mp-hairline); border-radius: 16px; background: var(--mp-well); box-shadow: var(--mp-card-drop); }
+.mp-panel-head { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 8px 10px; font-size: 13px; font-weight: 500; }
+.mp-panel-body { min-width: 0; max-width: 100%; padding: 12px; border: 1px solid var(--mp-hairline); border-radius: 12px; background: var(--mp-card); box-shadow: var(--mp-drop); }
+.mp-card { min-width: 0; border: 1px solid var(--mp-hairline); border-radius: 14px; background: var(--mp-card); box-shadow: var(--mp-drop); }
+.mp-strip { min-width: 0; padding: 10px 14px; border: 1px solid var(--mp-hairline); border-radius: 14px; background: var(--mp-well); }
+.mp-raised { border: 1px solid var(--mp-outline); background: var(--mp-card); box-shadow: var(--mp-drop); }
+.mp-tile { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--mp-outline); border-radius: 9px; background: var(--mp-card); box-shadow: var(--mp-drop); }
+.mp-tile.lg { width: 40px; height: 40px; border-radius: 12px; }
+.mp-tile.sm { width: 22px; height: 22px; border-radius: 7px; }
+.mp-tile.sm svg.ico { width: 13px; height: 13px; }
+
+/* Buttons */
+.mp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+.mp-btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+.mp-btn.icon { width: 32px; padding: 0; }
+.mp-btn.sm.icon { width: 28px; }
+.mp-btn.ghost:hover { background: var(--state-hover); }
+.mp-btn.mp-raised:hover { background: color-mix(in oklab, var(--mp-card) 92%, var(--foreground)); }
+.mp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mp-accent { border-color: transparent; background-color: var(--primary); background-image: var(--mp-accent); box-shadow: var(--mp-accent-edge); color: #ffffff; }
+.mp-accent:hover:not(:disabled) { filter: brightness(1.05) saturate(1.05); }
+
+/* Segmented control and navigation rows */
+.mp-seg { display: inline-flex; max-width: 100%; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--mp-hairline); border-radius: 9px; background: var(--mp-well); overflow-x: auto; scrollbar-width: none; }
+.mp-seg-item { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; color: var(--muted-foreground); font-size: 12px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+.mp-seg-item:hover { color: var(--foreground); }
+.mp-seg-item:is([data-state="active"], [aria-pressed="true"], [aria-selected="true"]) { background: var(--mp-card); box-shadow: var(--mp-raise); color: var(--foreground); font-weight: 600; }
+.mp-nav-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0 8px; border-radius: 8px; color: var(--muted-foreground); text-align: left; }
+.mp-nav-item:hover { color: var(--foreground); background: var(--state-hover); }
+.mp-nav-item:is([aria-selected="true"], [aria-current="page"]) { background: var(--mp-card); box-shadow: inset 0 0 0 1px var(--mp-outline), var(--mp-drop); color: var(--foreground); }
+
+/* Status pills */
+.mp-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; white-space: nowrap; line-height: 16px; }
+.mp-pill-success { background: color-mix(in oklab, var(--mp-success) 14%, transparent); color: var(--mp-success-text); }
+.mp-pill-info { background: color-mix(in oklab, var(--mp-info) 13%, transparent); color: var(--mp-info); }
+.mp-pill-warning { background: color-mix(in oklab, var(--mp-warning) 16%, transparent); color: var(--mp-warning-text); }
+.mp-pill-danger { background: color-mix(in oklab, var(--destructive) 12%, transparent); color: var(--mp-danger-text); }
+.mp-pill-neutral { background: var(--mp-card); box-shadow: inset 0 0 0 1px var(--mp-outline); color: var(--foreground); }
+.mp-pill-muted { background: color-mix(in oklab, var(--foreground) 7%, transparent); color: var(--foreground); }
+.mp-text-success { color: var(--mp-success-text); }
+.mp-text-warning { color: var(--mp-warning-text); }
+.mp-text-danger { color: var(--mp-danger-text); }
+.mp-help { display: inline-flex; width: 14px; height: 14px; margin-left: 4px; align-items: center; justify-content: center; vertical-align: top; border: 1px solid var(--mp-outline); border-radius: 9999px; background: var(--mp-card); color: var(--muted-foreground); font-size: 9px; font-weight: 600; line-height: 1; }
+
+/* Text helpers */
+.mp-h1 { margin: 0; font-size: 20px; font-weight: 500; line-height: 28px; }
+.mp-h2 { margin: 0; font-size: 14px; font-weight: 500; }
+.mp-meta { font-size: 12px; color: var(--muted-foreground); }
+.mp-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+.mp-num { font-variant-numeric: tabular-nums; }
+.mp-truncate { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mp-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mp-grow { flex: 1; min-width: 0; }
+.mp-divider { height: 1px; background: var(--mp-hairline); border: 0; margin: 0; }
+.mp-scroll { overflow-y: auto; min-height: 0; }
+.mp-avatar { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--foreground); background: color-mix(in oklab, var(--primary) 16%, var(--mp-card)); box-shadow: inset 0 0 0 1px var(--mp-outline); }
+.mp-avatar.lg { width: 40px; height: 40px; font-size: 14px; }
+.mp-avatar.alt { background: color-mix(in oklab, var(--mp-info) 16%, var(--mp-card)); }
+.mp-avatar.alt2 { background: color-mix(in oklab, var(--mp-warning) 18%, var(--mp-card)); }
+.mp-kbd { font-size: 11px; padding: 0 4px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--mp-outline); color: var(--muted-foreground); }
+
+/* Inputs */
+.mp-input { height: 32px; width: 100%; padding: 0 10px; border-radius: 8px; border: 1px solid var(--mp-outline); background: var(--mp-card); box-shadow: var(--mp-drop); font-size: 13px; }
+.mp-input::placeholder, .mp-textarea::placeholder { color: var(--muted-foreground); }
+
+/* Popover / menu (BB popover + command) and dialog */
+.mp-popover { position: absolute; z-index: 30; width: 300px; max-width: calc(100% - 16px); padding: 6px; border: 1px solid var(--mp-hairline); border-radius: 12px; background: var(--popover); box-shadow: var(--shadow-lg); }
+.mp-popover .mp-nav-item { min-height: 44px; }
+.mp-menu-label { padding: 6px 8px 4px; font-size: 11px; font-weight: 500; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.04em; }
+.mp-scrim { position: absolute; inset: 0; z-index: 20; background: color-mix(in oklab, var(--pk-shell, var(--background)) 55%, transparent); backdrop-filter: blur(1px); }
+.mp-dialog { position: absolute; z-index: 25; border: 1px solid var(--mp-hairline); border-radius: 20px; background: var(--pk-panel, var(--background)); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; }
+
+/* Platform picker grid (inside a popover) */
+.mp-plat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; }
+.mp-plat-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 8px; border-radius: 8px; font-size: 11px; color: var(--muted-foreground); text-align: center; }
+.mp-plat-btn:hover { background: var(--state-hover); color: var(--foreground); }
+.mp-plat-btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.mp-plat-btn .mp-tile { width: 36px; height: 36px; border-radius: 10px; color: var(--foreground); }
+
+/* ---------- 4. Chat: stands in for the SDK ThreadChat (compact) ---------- */
+.mp-chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; flex: 1; }
+:has(> .mp-chat) { min-width: 0; }
+.mp-chat-log { overflow-x: hidden; }
+.mp-chat-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.mp-msg { display: flex; gap: 8px; max-width: 100%; font-size: 13px; line-height: 1.5; }
+.mp-msg p { margin: 0 0 6px; } .mp-msg p:last-child { margin: 0; }
+.mp-msg-user { align-self: flex-end; max-width: 86%; padding: 8px 12px; border-radius: 12px; background: var(--mp-well); border: 1px solid var(--mp-hairline); overflow-wrap: anywhere; }
+.mp-msg-agent .mp-msg-body { flex: 1; min-width: 0; }
+.mp-msg-agent .mp-avatar { width: 24px; height: 24px; font-size: 10px; }
+.mp-msg-who { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.mp-tool { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin: 6px 0; border-radius: 8px; background: var(--mp-well); border: 1px solid var(--mp-hairline); font-size: 12px; }
+.mp-tool .mp-tool-name { font-weight: 500; white-space: nowrap; }
+.mp-spin { width: 12px; height: 12px; border-radius: 9999px; border: 2px solid color-mix(in oklab, var(--mp-info) 25%, transparent); border-top-color: var(--mp-info); animation: mp-spin 0.9s linear infinite; flex-shrink: 0; }
+@keyframes mp-spin { to { transform: rotate(360deg); } }
+.mp-suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.mp-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 9999px; font-size: 12px; border: 1px solid var(--mp-outline); background: var(--mp-card); box-shadow: var(--mp-drop); white-space: nowrap; }
+.mp-chip:hover { background: color-mix(in oklab, var(--mp-card) 92%, var(--foreground)); }
+.mp-composer { margin: 0 12px 12px; padding: 8px; border-radius: 12px; border: 1px solid var(--mp-outline); background: var(--mp-card); box-shadow: var(--mp-drop); flex-shrink: 0; }
+.mp-composer textarea { width: 100%; min-height: 40px; max-height: 120px; resize: none; border: 0; outline: 0; background: transparent; font-size: 13px; padding: 4px; }
+.mp-composer-row { display: flex; align-items: center; gap: 4px; }
+.mp-model { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border-radius: 6px; font-size: 12px; color: var(--muted-foreground); }
+.mp-model:hover { background: var(--state-hover); }
+.mp-model i { width: 14px; height: 14px; border-radius: 4px; background: color-mix(in oklab, var(--mp-warning) 55%, var(--mp-card)); }
+.mp-send { width: 28px; height: 28px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; background: var(--foreground); color: var(--background); }
+.mp-chat-head { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--mp-hairline); flex-shrink: 0; }
+.mp-proposal { margin-top: 8px; border: 1px solid var(--mp-hairline); border-radius: 12px; background: var(--mp-card); overflow: hidden; }
+.mp-proposal-row { padding: 8px 12px; font-size: 13px; }
+.mp-proposal-row + .mp-proposal-row { border-top: 1px solid var(--mp-hairline); }
+.mp-proposal del { color: var(--muted-foreground); }
+.mp-proposal ins { text-decoration: none; background: color-mix(in oklab, var(--mp-success) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+.mp-proposal-actions { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--mp-hairline); background: var(--mp-well); }
+
+/* ---------- 5. Editor bits ---------- */
+.mp-doc { outline: 0; font-size: 15px; line-height: 1.6; }
+.mp-doc p { margin: 0 0 12px; }
+.mp-doc .mp-hl { background: color-mix(in oklab, var(--primary) 16%, transparent); border-radius: 4px; box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 16%, transparent); }
+.mp-doc .mp-fresh { background: color-mix(in oklab, var(--mp-success) 14%, transparent); border-radius: 4px; }
+.mp-count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); white-space: nowrap; }
+.mp-ring { width: 22px; height: 22px; flex-shrink: 0; }
+.mp-ring circle { fill: none; stroke-width: 2.5; }
+.mp-ring .bg { stroke: var(--mp-hairline); }
+.mp-ring .fg { stroke: var(--mp-info); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.mp-ring.warn .fg { stroke: var(--mp-warning); } .mp-ring.over .fg { stroke: var(--destructive); }
+.mp-tweet-ta { width: 100%; min-height: 44px; resize: none; overflow: hidden; border: 0; outline: 0; background: transparent; font-size: 14px; line-height: 1.5; padding: 0; }
+.mp-rules { display: flex; flex-wrap: wrap; gap: 6px; }
+.mp-rule { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted-foreground); padding: 2px 8px; border-radius: 9999px; background: color-mix(in oklab, var(--foreground) 5%, transparent); }
+
+/* Portrait (style profile) */
+.mp-trait { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; font-size: 13px; }
+.mp-trait + .mp-trait { border-top: 1px solid var(--mp-hairline); }
+.mp-trait .k { color: var(--muted-foreground); width: 46%; flex-shrink: 0; }
+.mp-trait .v { font-weight: 500; font-variant-numeric: tabular-nums; min-width: 0; }
+.mp-layer { display: flex; align-items: center; gap: 8px; }
+.mp-skel { height: 10px; border-radius: 6px; background: linear-gradient(90deg, var(--mp-well), color-mix(in oklab, var(--foreground) 9%, var(--mp-well)), var(--mp-well)); background-size: 200% 100%; animation: mp-shimmer 1.4s ease-in-out infinite; }
+@keyframes mp-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.mp-bar { height: 6px; border-radius: 9999px; background: var(--mp-well); overflow: hidden; box-shadow: inset 0 0 0 1px var(--mp-hairline); }
+.mp-bar > i { display: block; height: 100%; border-radius: 9999px; background-image: var(--mp-accent); }
+
+/* Empty state */
+.mp-empty { max-width: 460px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 24px; }
+.mp-empty .mp-tile { width: 48px; height: 48px; border-radius: 14px; }
+
+/* View switching driven by data-view on .mp-app */
+[data-show]:not(.is-on) { display: none !important; }
+.mp-hidden { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .mp-spin, .mp-skel { animation: none; } }
+
+/* X twins: one tweet card holds the EN and RU versions. */
+.mp-tweet { border: 1px solid var(--mp-hairline); border-radius: 12px; background: var(--mp-card); box-shadow: var(--mp-drop); min-width: 0; }
+.mp-tweet-head { padding: 6px 8px 0 12px; }
+.mp-tweet-body { display: grid; }
+.mp-twin { padding: 8px 12px 12px; min-width: 0; }
+.mp-tweet-stack .mp-twin + .mp-twin { border-top: 1px solid var(--mp-hairline); }
+.mp-tweet-side .mp-tweet-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.mp-tweet-side .mp-twin + .mp-twin { border-left: 1px solid var(--mp-hairline); }
+@container mp (max-width: 720px) {
+  .mp-tweet-side .mp-tweet-body { grid-template-columns: minmax(0, 1fr); }
+  .mp-tweet-side .mp-twin + .mp-twin { border-left: 0; border-top: 1px solid var(--mp-hairline); }
+}
+
+
+/* ---------- Variant A2: profile level as in A; inside a post two columns [post | chat] ---------- */
+
+/* Profile level (copied from A without the draft column) */
+.a-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+.a-tabs { display: none; padding: 8px 12px; border-bottom: 1px solid var(--mp-hairline); }
+.a-tabs .mp-seg { width: 100%; } .a-tabs .mp-seg-item { flex: 1; justify-content: center; }
+.a-rail { position: relative; display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 12px; border-right: 1px solid var(--mp-hairline); }
+.a-switch { display: flex; align-items: center; gap: 8px; width: 100%; height: 48px; padding: 0 8px; border-radius: 8px; text-align: left; }
+.a-switch .name { display: block; font-weight: 600; font-size: 13px; color: var(--foreground); }
+.a-rail .mp-menu-label { padding: 4px 8px 0; }
+.a-rail-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin: 0 -4px; padding: 0 4px; }
+.a-plat .mp-nav-item { min-height: 36px; }
+.a-plat .n { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.a-post { display: flex; gap: 8px; align-items: flex-start; padding: 8px; min-height: 52px; }
+.a-post .t { display: block; font-size: 13px; font-weight: 500; color: var(--foreground); }
+.a-post .m { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; }
+#a-sw { top: 64px; left: 12px; width: 312px; }
+#a-new { top: 116px; left: 12px; width: 312px; }
+.a-centre { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.a-head { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 24px; border-bottom: 1px solid var(--mp-hairline); flex-shrink: 0; }
+.a-body { flex: 1; min-height: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.a-centre[data-ctab="chat"] .a-body.home-only, .a-centre[data-ctab="overview"] .a-stylechat { display: none !important; }
+.a-centre .mp-chat { max-width: 760px; width: 100%; margin: 0 auto; }
+.a-grid2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.a-platcard { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.a-platcard + .a-platcard { border-top: 1px solid var(--mp-hairline); }
+.a-rowlist .a-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 8px; border-radius: 8px; cursor: pointer; }
+.a-rowlist .a-row:hover { background: var(--state-hover); }
+.a-rowlist .a-row + .a-row { box-shadow: 0 -1px 0 var(--mp-hairline); }
+.a-pinned { position: sticky; top: -16px; z-index: 2; align-self: stretch; box-shadow: var(--mp-drop); }
+.a-pinned[open] summary [data-ico="chev"] { transform: rotate(180deg); }
+#a-stylechat .mp-chat, #a-create .mp-chat { flex: 1; }
+
+/* Post level: crumb bar on top, then [post | divider | chat] */
+.a2-work { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.a2-bar { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; border-bottom: 1px solid var(--mp-hairline); flex-shrink: 0; position: relative; }
+.a2-crumb { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; font-size: 13px; color: var(--muted-foreground); }
+.a2-crumb > [data-ico] { flex-shrink: 0; }
+.a2-crumb-btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+.a2-crumb-btn:hover { background: var(--state-hover); color: var(--foreground); }
+.a2-crumb-btn .mp-avatar { width: 20px; height: 20px; font-size: 9px; }
+.a2-crumb-btn .mp-tile.sm { width: 20px; height: 20px; border-radius: 6px; }
+.a2-crumb-title { min-width: 0; padding: 0 6px; color: var(--foreground); font-weight: 500; }
+.a2-tabs { display: none; }
+.a2-tabs .mp-seg-item { min-width: 64px; justify-content: center; }
+.a2-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; font-size: 10px; font-weight: 600; background-image: var(--mp-accent); background-color: var(--primary); color: #ffffff; }
+.a2-badge:empty { display: none; }
+#a2-posts { top: 44px; right: 12px; width: 340px; max-height: min(480px, calc(100% - 56px)); overflow-y: auto; }
+
+.a2-split { --a2-chat-w: 400px; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 9px var(--a2-chat-w); }
+.a2-divider { position: relative; cursor: col-resize; touch-action: none; }
+.a2-divider::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: var(--mp-hairline); }
+.a2-divider::after { content: ""; position: absolute; top: 50%; left: 2px; width: 5px; height: 32px; margin-top: -16px; border-radius: 9999px; background: var(--mp-outline); }
+.a2-divider:hover::before, .a2-divider.is-drag::before, .a2-divider:focus-visible::before { left: 3px; width: 3px; background: color-mix(in oklab, var(--primary) 45%, transparent); }
+.a2-divider:focus-visible { outline: 0; }
+
+/* Post column */
+.a2-post { container-type: inline-size; container-name: a2post; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.a2-post-head { display: flex; flex-direction: column; gap: 8px; padding: 16px max(24px, calc((100% - 712px) / 2)) 12px; border-bottom: 1px solid var(--mp-hairline); flex-shrink: 0; }
+.a2-meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; row-gap: 8px; }
+.a2-platname { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.a2-title { outline: 0; font-size: 22px; font-weight: 600; line-height: 30px; overflow-wrap: anywhere; border-radius: 6px; }
+.a2-title:focus-visible { box-shadow: 0 0 0 2px var(--ring); }
+.a2-post-body { flex: 1; min-height: 0; overflow-y: auto; background: color-mix(in oklab, var(--mp-well) 55%, var(--pk-panel, var(--background))); }
+.a2-page { max-width: 760px; margin: 0 auto; padding: 16px 24px 32px; display: flex; flex-direction: column; gap: 12px; }
+.a2-post[data-mode="editor"] .a2-pv, .a2-post[data-mode="preview"] .a2-ed { display: none !important; }
+.a2-edcard { padding: 20px; }
+.a2-edwrap { position: relative; }
+.a2-edtools { display: flex; align-items: center; gap: 4px; padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--mp-hairline); }
+.a2-sel { position: absolute; z-index: 5; display: flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; gap: 2px; padding: 4px; border-radius: 12px; border: 1px solid var(--mp-hairline); background: var(--popover); box-shadow: var(--shadow-lg); white-space: nowrap; }
+.a2-sel[hidden] { display: none; }
+.a2-post-foot { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 max(16px, calc((100% - 712px) / 2)); border-top: 1px solid var(--mp-hairline); flex-shrink: 0; background: var(--pk-panel, var(--background)); }
+.a2-post-foot .saved { display: inline-flex; align-items: center; gap: 6px; }
+
+/* X twins inside the post column: stacked below 700px of post width, side by side above. */
+.a2-tweet .a2-tw-body { display: grid; grid-template-columns: minmax(0, 1fr); }
+.a2-tweet .mp-twin + .mp-twin { border-top: 1px solid var(--mp-hairline); }
+@container a2post (min-width: 700px) {
+  .a2-tweet .a2-tw-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .a2-tweet .mp-twin + .mp-twin { border-top: 0; border-left: 1px solid var(--mp-hairline); }
+}
+.a2-stale-only { display: none !important; }
+.mp-twin.is-stale .a2-stale-only { display: inline-flex !important; }
+.mp-twin.is-stale .a2-sync-row { display: flex !important; }
+.a2-sync-row { align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--mp-hairline); }
+.mp-twin.is-fresh { background: color-mix(in oklab, var(--mp-success) 9%, transparent); transition: background 0.6s; }
+
+/* Previews (from C): neutral surfaces, the platform is named, not imitated in colour. */
+.a2-phone { max-width: 420px; width: 100%; margin: 0 auto; border-radius: 16px; border: 1px solid var(--mp-hairline); background: var(--mp-well); overflow: hidden; box-shadow: var(--mp-drop); }
+.a2-phone .hd { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--mp-card); border-bottom: 1px solid var(--mp-hairline); }
+.a2-bubble { margin: 12px; padding: 10px 12px 6px; border-radius: 12px; background: var(--mp-card); box-shadow: var(--mp-drop); font-size: 13px; line-height: 1.5; }
+.a2-bubble p { margin: 0 0 8px; }
+.a2-bubble .ft { display: flex; justify-content: flex-end; gap: 8px; font-size: 11px; color: var(--muted-foreground); }
+.a2-xprev { max-width: 520px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.a2-xcard { padding: 12px; border-radius: 12px; border: 1px solid var(--mp-hairline); background: var(--mp-card); box-shadow: var(--mp-drop); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.a2-xcard .who { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; min-width: 0; }
+
+/* Chat column */
+.a2-chat { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--pk-panel, var(--background)); }
+.a2-chat > [data-show] { flex: 1; min-height: 0; display: flex; }
+.a2-chat .mp-chat-log { padding: 12px 16px; gap: 12px; }
+.a2-chat .mp-tool { padding: 4px 8px; margin: 4px 0; }
+.a2-chat .mp-proposal-row .mp-meta { font-weight: 500; }
+.a2-quote { display: block; margin-bottom: 4px; padding-left: 8px; border-left: 2px solid var(--mp-outline); color: var(--muted-foreground); font-size: 12px; }
+#a2-model { left: 16px; bottom: 64px; top: auto; width: 260px; }
+
+/* Wide-but-not-huge pane: a slimmer default chat. */
+@container mp (max-width: 1279px) {
+  .a2-split { --a2-chat-w: 380px; }
+  .a-grid2 { grid-template-columns: minmax(0, 1fr); }
+  .a2-crumb-title, .a2-crumb-title-sep { display: none; }
+}
+/* Narrow pane (<= 900, BB's content threshold is 880): post and chat become tabs. */
+@container mp (max-width: 900px) {
+  .a2-tabs { display: inline-flex; }
+  .a2-split { grid-template-columns: minmax(0, 1fr) !important; }
+  .a2-divider { display: none; }
+  .a2-work[data-pane="post"] .a2-chat, .a2-work[data-pane="chat"] .a2-post { display: none; }
+  .a2-posts-btn .lbl { display: none; }
+}
+/* Narrow pane: profile level as in A (tabs Posts | Voice). */
+@container mp (max-width: 720px) {
+  .a-tabs { display: block; }
+  .a-layout { grid-template-columns: minmax(0, 1fr); }
+  .a-layout > .a-rail, .a-layout > .a-centre { display: none; border: 0; }
+  .a-layout[data-apane="rail"] > .a-rail, .a-layout[data-apane="centre"] > .a-centre { display: flex; }
+  .a-head, .a-body { padding-left: 16px; padding-right: 16px; }
+  .a-body { padding-top: 16px; }
+  #a-sw, #a-new, #a2-posts { left: 8px; right: 8px; width: auto; }
+  .a2-post-head { padding: 12px 16px 10px; }
+  .a2-title { font-size: 19px; line-height: 26px; }
+  .a2-page { padding: 12px 12px 24px; }
+  .a2-edcard { padding: 16px; }
+  .a2-post-foot { padding: 0 12px; }
+  .a2-post-foot .saved, .a2-copy .lbl, .a2-crumb .a2-crumb-name, .a2-crumb .a2-crumb-plat { display: none; }
+  .a2-sel { left: 0 !important; }
+}
+.a-switchy { width: 28px; height: 16px; border-radius: 9999px; background-color: var(--primary); background-image: var(--mp-accent); position: relative; display: inline-block; flex-shrink: 0; }
+.a-switchy::after { content: ""; position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 9999px; background: #ffffff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.2); }
+</style>
+</head>
+<body>
+<div class="proto-bar"></div>
+<div class="bb-shell">
+  <div class="bb-side" aria-hidden="true"><span></span><span class="on"></span><span></span><span></span></div>
+  <div class="bb-pane">
+    <div class="bb-pane-head"><span class="bb-dot"></span><span data-i18n="app.name"></span><span class="bb-crumb">· A2</span></div>
+    <div class="mp-app" data-bb-plugin="my-posts">
+
+      <!-- ================= Profile level: exactly A (rail + overview / style chat) ================= -->
+      <div class="a-tabs" data-show="empty switcher create home">
+        <div class="mp-seg" data-seg="apane" data-seg-target=".a-layout" role="tablist">
+          <button class="mp-seg-item" data-val="rail" data-i18n="a.tab.rail"></button>
+          <button class="mp-seg-item" data-val="centre" data-i18n="a.tab.voice"></button>
+        </div>
+      </div>
+      <div class="a-layout" data-show="empty switcher create home" data-apane="centre">
+        <aside class="a-rail">
+          <button class="a-switch mp-raised" data-pop="a-sw" aria-haspopup="menu" aria-expanded="false" data-i18n-aria="profile.switch">
+            <span id="a-sw-av"></span>
+            <span class="mp-grow"><span class="name mp-truncate" id="a-sw-name"></span><span class="mp-meta mp-truncate" id="a-sw-meta" style="display:block"></span></span>
+            <span data-ico="chev" style="color:var(--muted-foreground)"></span>
+          </button>
+          <div class="mp-popover mp-hidden" id="a-sw" role="menu"></div>
+          <button class="mp-btn mp-accent" data-show="home switcher" data-pop="a-new" style="width:100%"><span data-ico="plus"></span><span data-i18n="post.new"></span></button>
+          <div class="mp-popover mp-hidden" id="a-new" role="menu"></div>
+          <div class="a-rail-scroll" data-show="home switcher">
+            <div class="mp-menu-label" data-i18n="a.platforms"></div>
+            <div class="a-plat" id="a-plat"></div>
+            <div class="mp-menu-label" style="margin-top:8px" data-i18n="post.posts"></div>
+            <div id="a-posts"></div>
+          </div>
+          <p class="mp-meta" data-show="create" style="margin:0;padding:0 8px" data-i18n="a.create_note"></p>
+          <p class="mp-meta" data-show="empty" style="margin:0;padding:0 8px" data-i18n="a.empty_note"></p>
+        </aside>
+
+        <main class="a-centre" data-ctab="overview">
+          <div class="a-head" data-show="home switcher">
+            <span class="mp-seg" data-seg="ctab" data-seg-target=".a-centre">
+              <button class="mp-seg-item" data-val="overview" data-i18n="a.overview"></button>
+              <button class="mp-seg-item" data-val="chat" data-i18n="a.stylechat"></button>
+            </span>
+            <span class="mp-grow"></span>
+            <button class="mp-btn sm mp-raised"><span data-ico="refresh"></span><span data-i18n="a.refresh"></span></button>
+          </div>
+          <div class="a-head" data-show="create">
+            <span class="mp-tile"><span data-ico="spark"></span></span>
+            <span class="mp-h2" data-i18n="a.new_profile"></span>
+            <span id="a-build-pill"></span>
+            <span class="mp-grow"></span>
+            <button class="mp-btn sm ghost" data-go="switcher" data-i18n="a.cancel"></button>
+          </div>
+          <div class="a-body home-only" data-show="home switcher">
+            <div class="mp-strip mp-row" style="gap:12px;padding:14px 16px">
+              <span class="mp-avatar lg">МГ</span>
+              <span class="mp-grow"><h1 class="mp-h1">Мой голос</h1><span class="mp-meta"><span>t.me/bez_filtrov_demo</span> · <span data-i18n="profile.mine.meta"></span> · <span data-i18n="a.portrait_from"></span></span></span>
+              <span id="a-ready-pill"></span>
+            </div>
+            <div class="a-grid2">
+              <section class="mp-panel"><div class="mp-panel-head"><span data-i18n="portrait.title"></span><span class="mp-help">?</span></div>
+                <div class="mp-panel-body" id="a-portrait"></div></section>
+              <section class="mp-panel"><div class="mp-panel-head"><span data-i18n="a.platforms"></span><span class="mp-grow"></span><span class="mp-meta mp-num">12</span></div>
+                <div class="mp-panel-body" style="padding:0 16px" id="a-platcards"></div></section>
+            </div>
+            <section class="mp-panel"><div class="mp-panel-head"><span data-i18n="a.recent"></span></div>
+              <div class="mp-panel-body a-rowlist" style="padding:4px" id="a-recent"></div></section>
+          </div>
+          <div class="a-stylechat" data-show="home switcher" style="flex:1;min-height:0;display:flex">
+            <div id="a-stylechat" style="flex:1;min-height:0;display:flex"></div>
+          </div>
+          <div data-show="create" style="flex:1;min-height:0;display:flex" id="a-create"></div>
+          <div data-show="empty" class="a-body" style="justify-content:center">
+            <div class="mp-card mp-empty" style="padding:40px 24px">
+              <span class="mp-tile"><span data-ico="spark" class="ico-20"></span></span>
+              <h1 class="mp-h1" style="font-size:18px" data-i18n="empty.title"></h1>
+              <p style="margin:0;color:var(--muted-foreground)" data-i18n="empty.what"></p>
+              <p class="mp-meta" style="margin:0" data-i18n="empty.how"></p>
+              <button class="mp-btn mp-accent" data-go="create"><span data-ico="plus"></span><span data-i18n="profile.create"></span></button>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <!-- ================= Post level: [ post | chat ], the rail is gone ================= -->
+      <div class="a2-work" data-show="tg x tgprev narrow" data-pane="post">
+        <header class="a2-bar">
+          <button class="mp-btn sm icon ghost" data-go="home" data-i18n-aria="a2.back"><span data-ico="back"></span></button>
+          <nav class="a2-crumb" data-i18n-aria="a2.crumb">
+            <button class="a2-crumb-btn" data-go="home"><span class="mp-avatar">МГ</span><span class="a2-crumb-name">Мой голос</span></button>
+            <span data-ico="chevr"></span>
+            <button class="a2-crumb-btn" data-go="home" id="a2-crumb-plat"></button>
+            <span data-ico="chevr" class="a2-crumb-title-sep"></span>
+            <span class="a2-crumb-title mp-truncate" id="a2-crumb-title"></span>
+          </nav>
+          <span class="mp-seg a2-tabs" data-seg="pane" data-seg-target=".a2-work" role="tablist">
+            <button class="mp-seg-item" data-val="post" data-i18n="a2.tab.post"></button>
+            <button class="mp-seg-item" data-val="chat"><span data-i18n="a2.tab.chat"></span><span class="a2-badge" id="a2-badge"></span></button>
+          </span>
+          <button class="mp-btn sm mp-raised a2-posts-btn" data-pop="a2-posts" aria-haspopup="menu" aria-expanded="false" data-i18n-aria="post.posts"><span data-ico="list"></span><span class="lbl" data-i18n="post.posts"></span><span data-ico="chev"></span></button>
+          <div class="mp-popover mp-hidden" id="a2-posts" role="menu"></div>
+        </header>
+
+        <div class="a2-split" id="a2-split">
+          <!-- POST: the main focus -->
+          <section class="a2-post" data-mode="editor" data-i18n-aria="a2.tab.post">
+            <div class="a2-post-head">
+              <div class="a2-meta-row">
+                <span id="a2-tile"></span><span class="a2-platname" id="a2-platname"></span><span id="a2-pill"></span>
+                <span class="mp-grow"></span>
+                <span class="mp-seg" data-seg="mode" data-seg-target=".a2-post" role="tablist">
+                  <button class="mp-seg-item" data-val="editor"><span data-ico="doc"></span><span data-i18n="a2.editor"></span></button>
+                  <button class="mp-seg-item" data-val="preview"><span data-ico="eye"></span><span data-i18n="a2.preview"></span></button>
+                </span>
+              </div>
+              <div class="a2-title" id="a2-title" contenteditable="true" role="textbox" data-i18n-aria="post.title_ph"></div>
+            </div>
+
+            <div class="a2-post-body">
+              <div class="a2-page">
+                <div class="mp-rules" id="a2-rules"></div>
+
+                <!-- Telegram editor -->
+                <div class="a2-ed mp-card a2-edcard" data-show="tg tgprev narrow">
+                  <div class="a2-edwrap">
+                    <div class="a2-sel" id="a2-sel" role="toolbar" data-i18n-aria="a2.seltools">
+                      <button class="mp-btn sm ghost" data-a2ask="shorter"><span data-i18n="sug.shorter"></span></button>
+                      <button class="mp-btn sm ghost" data-a2ask="sharper"><span data-i18n="a2.sharper"></span></button>
+                      <button class="mp-btn sm ghost" data-a2ask="voice"><span data-i18n="a2.invoice"></span></button>
+                      <button class="mp-btn sm ghost" data-a2ask="ask"><span data-ico="spark"></span><span data-i18n="a2.ask"></span></button>
+                    </div>
+                    <div class="mp-doc" contenteditable="true" id="a2-tg-doc" data-count="4096" data-count-out="a2-tg-count" data-ring="a2-tg-ring"></div>
+                  </div>
+                  <div class="a2-edtools">
+                    <button class="mp-btn sm icon ghost" aria-label="bold"><span data-ico="bold"></span></button>
+                    <button class="mp-btn sm icon ghost" aria-label="italic"><span data-ico="italic"></span></button>
+                    <button class="mp-btn sm icon ghost" aria-label="link"><span data-ico="link"></span></button>
+                    <button class="mp-btn sm icon ghost" aria-label="image"><span data-ico="image"></span></button>
+                    <span class="mp-grow"></span>
+                    <span class="mp-count" id="a2-tg-count"></span><span data-ring-slot="a2-tg-ring"></span>
+                  </div>
+                </div>
+
+                <!-- X editor: every tweet is an EN + RU pair -->
+                <div class="a2-ed mp-col" data-show="x" style="gap:8px">
+                  <div class="mp-row" style="flex-wrap:wrap;row-gap:4px"><span class="mp-h2" data-i18n="x.thread"></span><span class="mp-meta mp-num">3 × EN+RU</span><span class="mp-grow"></span>
+                    <span class="mp-row mp-meta" style="gap:6px"><span class="a-switchy" aria-hidden="true"></span><span data-i18n="x.sync"></span></span></div>
+                  <div class="mp-col" id="a2-tweets" style="gap:8px"></div>
+                  <button class="mp-btn sm ghost" style="align-self:flex-start"><span data-ico="plus"></span><span data-i18n="x.add"></span></button>
+                  <p class="mp-meta" style="margin:0" data-i18n="x.count_note"></p>
+                </div>
+
+                <!-- Previews -->
+                <div class="a2-pv mp-col" data-show="tg tgprev narrow">
+                  <div class="a2-phone">
+                    <div class="hd"><span class="mp-avatar">БФ</span><span class="mp-grow"><b style="font-size:13px;font-weight:600">Без фильтров</b><span class="mp-meta" style="display:block" data-i18n="a2.subs"></span></span><span data-ico="tg"></span></div>
+                    <div class="a2-bubble" id="a2-bubble"></div>
+                  </div>
+                  <p class="mp-meta" style="margin:0;text-align:center" data-i18n="a2.prevnote"></p>
+                </div>
+                <div class="a2-pv mp-col" data-show="x">
+                  <div class="mp-row" style="justify-content:center"><span class="mp-seg" data-seg="xlang"><button class="mp-seg-item" data-val="en" aria-pressed="true">EN</button><button class="mp-seg-item" data-val="ru">RU</button></span></div>
+                  <div class="a2-xprev" id="a2-xprev"></div>
+                  <p class="mp-meta" style="margin:0;text-align:center" data-i18n="a2.prevnote"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="a2-post-foot">
+              <span class="mp-meta saved"><span data-ico="check" class="ico-14"></span><span data-i18n="a2.saved"></span></span>
+              <span class="mp-grow"></span>
+              <button class="mp-btn mp-raised a2-copy" data-i18n-aria="post.copy"><span data-ico="copy"></span><span class="lbl" data-i18n="post.copy"></span></button>
+              <button class="mp-btn mp-accent" id="a2-ready"><span data-ico="check"></span><span data-i18n="post.mark_ready"></span></button>
+            </div>
+          </section>
+
+          <div class="a2-divider" id="a2-divider" role="separator" aria-orientation="vertical" tabindex="0" data-i18n-aria="a2.divider" aria-valuemin="320" aria-valuemax="640" aria-valuenow="400"></div>
+
+          <!-- CHAT: the post's copywriter (ThreadChat compact in the plugin) -->
+          <aside class="a2-chat" data-i18n-aria="chat.copywriter">
+            <div id="a2-chat-tg" data-show="tg tgprev narrow"></div>
+            <div id="a2-chat-x" data-show="x"></div>
+            <div class="mp-popover mp-hidden" id="a2-model" role="menu"></div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* MyPosts prototype runtime: icons, i18n (EN default keys + RU), view switching,
+   prototype bar, segmented controls, popovers, counters, fake chat replies. */
+(function () {
+  const P = 'viewBox="0 0 24 24" class="ico" aria-hidden="true"';
+  const ICONS = {
+    tg: '<path d="M21.2 3.6 2.8 10.8l6.1 2.2 2.3 6.9 3.3-3.9 4.6 3.4z"/><path d="m8.9 13 9.6-7.1"/>',
+    x: '<path d="M4 4h4.5L20 20h-4.5z"/><path d="m19.6 4-6.4 7.2M10.8 12.8 4.4 20"/>',
+    vk: '<rect x="2.5" y="4.5" width="19" height="15" rx="5"/><path d="M6.5 9.5c.4 3.4 2.2 5.3 5 5.3V12c1 .1 2 1 2.6 2.8h2.4c-.6-2-1.8-3-2.5-3.4.8-.5 1.8-1.6 2.1-3h-2.2c-.4 1.3-1.4 2.4-2.4 2.5V8.9H9.6v4.3C8.6 13 8 11.6 8.9 9.5z" fill="currentColor" stroke="none"/>',
+    dzen: '<path d="M12 2.5c.4 5.1 4.4 9.1 9.5 9.5-5.1.4-9.1 4.4-9.5 9.5-.4-5.1-4.4-9.1-9.5-9.5 5.1-.4 9.1-4.4 9.5-9.5z" fill="currentColor" stroke="none"/>',
+    li: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 10.5V16M8 7.8v.01M11.8 16v-5.5M11.8 13.2c0-2.4 4.2-3 4.2 0V16"/>',
+    th: '<circle cx="12" cy="12" r="3.4"/><path d="M15.4 12v1.4a2.4 2.4 0 0 0 4.8 0V12a8.2 8.2 0 1 0-3.4 6.6"/>',
+    ig: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><path d="M17.2 6.8v.01"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', chev: '<path d="m6 9 6 6 6-6"/>', chevr: '<path d="m9 6 6 6-6 6"/>', back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    close: '<path d="M6 6l12 12M18 6 6 18"/>', send: '<path d="M12 19V5M6 11l6-6 6 6"/>', clip: '<path d="m20.5 11.5-8.3 8.3a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    spark: '<path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.2 17.3 21 18l-1.8.7-.7 1.8-.7-1.8L16 18l1.8-.7z"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7"/>', search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+    more: '<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>',
+    panel: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M14.5 4.5v15"/>', doc: '<path d="M7 3.5h7l4.5 4.5v12.5H7z"/><path d="M14 3.5V8h4.5M9.5 12.5h6M9.5 16h6"/>',
+    copy: '<rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+    board: '<rect x="3.5" y="4.5" width="5" height="15" rx="1.5"/><rect x="10" y="4.5" width="5" height="10" rx="1.5"/><rect x="16.5" y="4.5" width="4" height="12" rx="1.5"/>',
+    list: '<path d="M8.5 6.5h12M8.5 12h12M8.5 17.5h12M4 6.5v.01M4 12v.01M4 17.5v.01"/>',
+    chat: '<path d="M4.5 5.5h15v10.5H10l-5.5 4z"/>', user: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3"/>',
+    wand: '<path d="m4 20 11-11M14 4v2.5M19.5 9.5H17M18 6l-1.7 1.7M15 9l-2-2"/>', image: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17.5 5-4.5 4 3.5 2.5-2 4.5 3.5"/>',
+    upload: '<path d="M12 15.5V4.5M7 9l5-5 5 5M4.5 15.5v4h15v-4"/>', globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z"/>',
+    eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>', clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/>', twin: '<rect x="3.5" y="5.5" width="7.5" height="13" rx="2"/><rect x="13" y="5.5" width="7.5" height="13" rx="2"/>',
+    heading: '<path d="M6 5v14M18 5v14M6 12h12"/>', bold: '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>', italic: '<path d="M10 5h8M6 19h8M14 5l-4 14"/>',
+  };
+  const svg = (n) => `<svg ${P}>${ICONS[n] || ''}</svg>`;
+
+  const COMMON = {
+    en: {
+      'proto.states': 'States', 'proto.width': 'Pane', 'proto.full': 'Wide', 'proto.theme': 'Dark', 'proto.lang': 'Language', 'proto.back': 'All variants',
+      'proto.i18n_ok': 'i18n: EN and RU keys match', 'proto.i18n_bad': 'i18n: missing keys',
+      'view.empty': 'Empty', 'view.switcher': 'Switcher', 'view.create': 'New profile', 'view.home': 'Profile', 'view.x': 'X EN+RU', 'view.tg': 'Telegram',
+      'app.name': 'MyPosts', 'app.section': 'Workspace',
+      'plat.tg': 'Telegram', 'plat.dzen': 'Dzen', 'plat.vk': 'VK', 'plat.x': 'X', 'plat.li': 'LinkedIn', 'plat.th': 'Threads', 'plat.ig': 'Instagram', 'plat.more': 'Add platform', 'plat.soon': 'soon', 'plat.all': 'All',
+      'status.draft': 'Draft', 'status.writing': 'Agent writing', 'status.ready': 'Ready', 'status.published': 'Published', 'status.building': 'Building', 'status.lowdata': 'Too few texts', 'status.waiting': 'Waiting', 'status.done': 'Done', 'status.running': 'Running', 'status.stale': 'RU is behind EN', 'status.over': 'Over the limit',
+      'profile.switch': 'Switch profile', 'profile.search': 'Find a profile', 'profile.create': 'Create profile', 'profile.manage': 'Manage profiles', 'profile.profiles': 'Style profiles',
+      'profile.mine.meta': 'Telegram · 146 posts', 'profile.anna.meta': 'Dzen · 38 articles', 'profile.b2b.meta': 'Files · 6 texts',
+      'post.new': 'New post', 'post.new_article': 'New article', 'post.kind.post': 'Post', 'post.kind.article': 'Article', 'post.pick': 'Where does it go?',
+      'post.title_ph': 'Title', 'post.copy': 'Copy', 'post.mark_ready': 'Mark ready', 'post.close': 'Close draft', 'post.posts': 'Posts', 'post.chars': 'chars',
+      'chat.copywriter': 'Copywriter', 'chat.style_agent': 'Style agent', 'chat.ph': 'Ask to rewrite, shorten, add a hook…', 'chat.ph_profile': 'Add a link, texts or a note…', 'chat.attach': 'Attach files', 'chat.send': 'Send', 'chat.model': 'Claude Opus',
+      'chat.apply': 'Apply', 'chat.reject': 'Reject', 'chat.before': 'Before', 'chat.after': 'After', 'chat.reply': 'Done. Profile rules kept: first line under 70 chars, no taboo words.',
+      'sug.shorter': 'Shorter', 'sug.hooks': 'More hooks', 'sug.question': 'End with a question', 'sug.taboo': 'Check taboo words', 'sug.translate': 'Update RU from EN',
+      'portrait.title': 'Style portrait', 'portrait.layerA': 'A · Measured', 'portrait.layerB': 'B · Voice', 'portrait.layerC': 'C · Writing rules',
+      'portrait.corpus': 'Corpus', 'portrait.sentence': 'Sentence length', 'portrait.postlen': 'Post length, median', 'portrait.para': 'Paragraphs', 'portrait.emoji': 'Emoji per post', 'portrait.qopen': 'Opens with a question', 'portrait.lists': 'Posts with lists',
+      'portrait.leak': 'Content leak: looks like style but rests on topic', 'portrait.save': 'Save profile', 'portrait.name': 'Profile name', 'portrait.source': 'Source',
+      'empty.title': 'No style profiles yet', 'empty.what': 'A profile is a portrait of an author’s voice: the agent studies the texts and then writes the same way.', 'empty.how': 'A Telegram channel link, a folder of texts or an export will do.',
+      'rules.tg': 'up to 4096 chars · bold, italic, links · first link preview', 'rules.x': '280 per tweet · every tweet in EN and RU · thread up to 25', 'rules.dzen': 'article · title, cover, H2 headings', 'rules.vk': 'post with attachments · photo, poll',
+      'x.thread': 'Thread', 'x.tweet': 'Tweet', 'x.add': 'Add tweet', 'x.en': 'English', 'x.ru': 'Russian', 'x.sync': 'Keep versions in sync', 'x.both': 'Both', 'x.count_note': 'counted by X rules: a link is 23',
+      'time.today': 'today', 'time.yday': 'yesterday',
+    },
+    ru: {
+      'proto.states': 'Состояния', 'proto.width': 'Панель', 'proto.full': 'Широко', 'proto.theme': 'Тёмная', 'proto.lang': 'Язык', 'proto.back': 'Все варианты',
+      'proto.i18n_ok': 'i18n: ключи EN и RU совпадают', 'proto.i18n_bad': 'i18n: не хватает ключей',
+      'view.empty': 'Пусто', 'view.switcher': 'Переключатель', 'view.create': 'Новый профиль', 'view.home': 'Профиль', 'view.x': 'X EN+RU', 'view.tg': 'Telegram',
+      'app.name': 'MyPosts', 'app.section': 'Рабочая область',
+      'plat.tg': 'Telegram', 'plat.dzen': 'Дзен', 'plat.vk': 'ВКонтакте', 'plat.x': 'X', 'plat.li': 'LinkedIn', 'plat.th': 'Threads', 'plat.ig': 'Instagram', 'plat.more': 'Добавить площадку', 'plat.soon': 'скоро', 'plat.all': 'Все',
+      'status.draft': 'Черновик', 'status.writing': 'Агент пишет', 'status.ready': 'Готов', 'status.published': 'Опубликован', 'status.building': 'Строится', 'status.lowdata': 'Мало текстов', 'status.waiting': 'Ждёт', 'status.done': 'Готово', 'status.running': 'Идёт', 'status.stale': 'RU отстаёт от EN', 'status.over': 'Больше лимита',
+      'profile.switch': 'Сменить профиль', 'profile.search': 'Найти профиль', 'profile.create': 'Создать профиль', 'profile.manage': 'Управлять профилями', 'profile.profiles': 'Профили стиля',
+      'profile.mine.meta': 'Telegram · 146 постов', 'profile.anna.meta': 'Дзен · 38 статей', 'profile.b2b.meta': 'Файлы · 6 текстов',
+      'post.new': 'Новый пост', 'post.new_article': 'Новая статья', 'post.kind.post': 'Пост', 'post.kind.article': 'Статья', 'post.pick': 'Куда пишем?',
+      'post.title_ph': 'Заголовок', 'post.copy': 'Скопировать', 'post.mark_ready': 'Отметить готовым', 'post.close': 'Закрыть черновик', 'post.posts': 'Посты', 'post.chars': 'знаков',
+      'chat.copywriter': 'Копирайтер', 'chat.style_agent': 'Агент стиля', 'chat.ph': 'Попросите переписать, сократить, добавить крючок…', 'chat.ph_profile': 'Добавьте ссылку, тексты или уточнение…', 'chat.attach': 'Прикрепить файлы', 'chat.send': 'Отправить', 'chat.model': 'Claude Opus',
+      'chat.apply': 'Применить', 'chat.reject': 'Отклонить', 'chat.before': 'Было', 'chat.after': 'Стало', 'chat.reply': 'Готово. Правила профиля соблюдены: первая строка короче 70 знаков, слов из табу нет.',
+      'sug.shorter': 'Короче', 'sug.hooks': 'Больше крючков', 'sug.question': 'Вопрос в конце', 'sug.taboo': 'Проверь табу', 'sug.translate': 'Обновить RU по EN',
+      'portrait.title': 'Портрет стиля', 'portrait.layerA': 'A · Замеры', 'portrait.layerB': 'B · Голос', 'portrait.layerC': 'C · Правила письма',
+      'portrait.corpus': 'Корпус', 'portrait.sentence': 'Длина предложения', 'portrait.postlen': 'Длина поста, медиана', 'portrait.para': 'Абзацы', 'portrait.emoji': 'Эмодзи на пост', 'portrait.qopen': 'Начинает с вопроса', 'portrait.lists': 'Посты со списками',
+      'portrait.leak': 'Утечка содержания: похоже на стиль, но держится на теме', 'portrait.save': 'Сохранить профиль', 'portrait.name': 'Название профиля', 'portrait.source': 'Источник',
+      'empty.title': 'Пока нет ни одного профиля стиля', 'empty.what': 'Профиль — это портрет голоса автора: агент изучит тексты и будет писать так же.', 'empty.how': 'Подойдёт ссылка на Telegram-канал, папка с текстами или экспорт.',
+      'rules.tg': 'до 4096 знаков · жирный, курсив, ссылки · превью первой ссылки', 'rules.x': '280 на твит · каждый твит на EN и RU · тред до 25', 'rules.dzen': 'статья · заголовок, обложка, подзаголовки H2', 'rules.vk': 'пост с вложениями · фото, опрос',
+      'x.thread': 'Тред', 'x.tweet': 'Твит', 'x.add': 'Добавить твит', 'x.en': 'Английский', 'x.ru': 'Русский', 'x.sync': 'Держать версии в синхроне', 'x.both': 'Обе', 'x.count_note': 'счёт по правилам X: ссылка = 23',
+      'time.today': 'сегодня', 'time.yday': 'вчера',
+    },
+  };
+
+  const MP = (window.MP = { dict: { en: { ...COMMON.en }, ru: { ...COMMON.ru } }, lang: 'ru', view: 'home', hooks: [], onSeg: {} });
+  // Variants may pass their own state list to MP.init({ views }); the default is the six shared states.
+  let VIEWS = ['empty', 'switcher', 'create', 'home', 'x', 'tg'];
+  MP.add = (en, ru) => { Object.assign(MP.dict.en, en); Object.assign(MP.dict.ru, ru); };
+  MP.t = (k) => MP.dict[MP.lang][k] ?? MP.dict.en[k] ?? k;
+  MP.icons = svg;
+  const qs = new URLSearchParams(location.search);
+
+  function paintIcons(root) {
+    root.querySelectorAll('[data-ico]').forEach((el) => { if (!el.dataset.painted) { el.innerHTML = svg(el.dataset.ico); el.dataset.painted = '1'; } });
+  }
+  function applyI18n() {
+    document.documentElement.lang = MP.lang;
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = MP.t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = MP.t(el.dataset.i18nPh); });
+    document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', MP.t(el.dataset.i18nAria)); el.title = MP.t(el.dataset.i18nAria); });
+    const en = Object.keys(MP.dict.en), ru = Object.keys(MP.dict.ru);
+    const miss = en.filter((k) => !(k in MP.dict.ru)).concat(ru.filter((k) => !(k in MP.dict.en)));
+    const used = [...document.querySelectorAll('[data-i18n],[data-i18n-ph],[data-i18n-aria]')].map((e) => e.dataset.i18n || e.dataset.i18nPh || e.dataset.i18nAria);
+    const all = [...new Set(miss.concat(used.filter((k) => !(k in MP.dict.en))))];
+    const w = document.getElementById('proto-i18n');
+    if (w) { w.textContent = all.length ? `${MP.t('proto.i18n_bad')}: ${all.join(', ')}` : MP.t('proto.i18n_ok'); w.className = all.length ? 'proto-warn' : 'proto-note'; }
+    if (all.length) console.warn('i18n missing', all);
+  }
+  MP.applyI18n = applyI18n;
+
+  MP.go = function (view) {
+    MP.view = view;
+    const app = document.querySelector('.mp-app');
+    app.dataset.view = view;
+    document.querySelectorAll('[data-show]').forEach((el) => el.classList.toggle('is-on', el.dataset.show.split(/\s+/).includes(view)));
+    document.querySelectorAll('[data-proto-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.protoView === view)));
+    closePops();
+    if (location.hash !== '#' + view) history.replaceState(null, '', location.search + '#' + view);
+    MP.hooks.forEach((h) => h(view));
+    applyI18n();
+    paintIcons(document);
+    refreshCounters();
+    document.querySelectorAll('.mp-chat-log').forEach((l) => { l.scrollTop = l.scrollHeight; });
+  };
+
+  function buildBar(cfg) {
+    const bar = document.querySelector('.proto-bar');
+    bar.innerHTML = `
+      <a class="mp-btn sm ghost" href="index.html"><span data-ico="back"></span><span data-i18n="proto.back"></span></a>
+      <span class="proto-name">${cfg.name}</span>
+      <span class="proto-group"><span class="proto-label" data-i18n="proto.states"></span>
+        <span class="mp-seg">${VIEWS.map((v, i) => `<button class="mp-seg-item" data-proto-view="${v}"><span class="mp-num">${i + 1}</span><span data-i18n="view.${v}"></span></button>`).join('')}</span></span>
+      <span class="proto-group"><span class="proto-label" data-i18n="proto.width"></span>
+        <span class="mp-seg" id="proto-w">${['full', '1200', '900', '420'].map((w) => `<button class="mp-seg-item" data-w="${w}">${w === 'full' ? '<span data-i18n="proto.full"></span>' : w}</button>`).join('')}</span></span>
+      <span class="proto-sep"></span>
+      <span id="proto-i18n" class="proto-note"></span>
+      <button class="mp-btn sm mp-raised" id="proto-lang"><span data-ico="globe"></span><span data-i18n="proto.lang"></span><b id="proto-lang-cur"></b></button>
+      <button class="mp-btn sm mp-raised" id="proto-theme" aria-pressed="false"><span data-ico="sun"></span><span data-i18n="proto.theme"></span></button>`;
+    bar.querySelectorAll('[data-proto-view]').forEach((b) => b.addEventListener('click', () => MP.go(b.dataset.protoView)));
+    const setW = (w) => { document.querySelector('.bb-pane').dataset.w = w; bar.querySelectorAll('#proto-w [data-w]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.w === w))); sessionStorage.setItem('mp-w', w); };
+    bar.querySelectorAll('#proto-w [data-w]').forEach((b) => b.addEventListener('click', () => setW(b.dataset.w)));
+    setW(qs.get('w') || sessionStorage.getItem('mp-w') || 'full');
+    const setTheme = (d) => { document.documentElement.classList.toggle('dark', d); bar.querySelector('#proto-theme').setAttribute('aria-pressed', String(d)); localStorage.setItem('mp-theme', d ? 'dark' : 'light'); };
+    bar.querySelector('#proto-theme').addEventListener('click', () => setTheme(!document.documentElement.classList.contains('dark')));
+    setTheme((qs.get('theme') || localStorage.getItem('mp-theme')) === 'dark');
+    const setLang = (l) => { MP.lang = l; localStorage.setItem('mp-lang', l); bar.querySelector('#proto-lang-cur').textContent = l.toUpperCase(); applyI18n(); MP.hooks.forEach((h) => h(MP.view)); refreshCounters(); };
+    bar.querySelector('#proto-lang').addEventListener('click', () => setLang(MP.lang === 'ru' ? 'en' : 'ru'));
+    MP.lang = qs.get('lang') || localStorage.getItem('mp-lang') || 'ru';
+    bar.querySelector('#proto-lang-cur').textContent = MP.lang.toUpperCase();
+  }
+
+  /* Live counters: data-count="limit" on a textarea or contenteditable; output id in
+     data-count-out, optional ring id in data-ring. Counts code points. */
+  function len(el) { const v = el.value !== undefined ? el.value : el.innerText; return [...v.replace(/\n+$/, '')].length; }
+  function refreshCounters() {
+    document.querySelectorAll('textarea.mp-tweet-ta').forEach((ta) => { if (ta.offsetParent) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; } });
+    document.querySelectorAll('[data-count]').forEach((el) => {
+      const lim = +el.dataset.count, n = len(el), out = document.getElementById(el.dataset.countOut);
+      if (out) { out.textContent = `${n.toLocaleString(MP.lang)} / ${lim.toLocaleString(MP.lang)}`; out.classList.toggle('mp-text-danger', n > lim); }
+      const ring = el.dataset.ring && document.getElementById(el.dataset.ring);
+      if (ring) {
+        const c = ring.querySelector('.fg'), L = 2 * Math.PI * 9, f = Math.min(n / lim, 1);
+        c.setAttribute('stroke-dasharray', `${L * f} ${L}`);
+        ring.classList.toggle('warn', n > lim * 0.9 && n <= lim); ring.classList.toggle('over', n > lim);
+        ring.setAttribute('aria-label', `${n} / ${lim}`);
+      }
+    });
+  }
+  MP.refreshCounters = refreshCounters;
+  MP.ring = (id) => `<svg class="mp-ring" id="${id}" viewBox="0 0 22 22" role="img"><circle class="bg" cx="11" cy="11" r="9"/><circle class="fg" cx="11" cy="11" r="9"/></svg>`;
+
+  function closePops() {
+    document.querySelectorAll('.mp-popover').forEach((p) => p.classList.add('mp-hidden'));
+    document.querySelectorAll('[data-pop]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    (MP.onClosePops || (() => {}))();
+  }
+  MP.closePops = closePops;
+  MP.openPop = (id) => { const p = document.getElementById(id); if (p) p.classList.remove('mp-hidden'); document.querySelectorAll(`[data-pop="${id}"]`).forEach((b) => b.setAttribute('aria-expanded', 'true')); };
+
+  function wire() {
+    document.addEventListener('click', (e) => {
+      const go = e.target.closest('[data-go]');
+      if (go) { e.preventDefault(); MP.go(go.dataset.go); return; }
+      const pt = e.target.closest('[data-pop]');
+      if (pt) { e.stopPropagation(); const was = document.getElementById(pt.dataset.pop).classList.contains('mp-hidden'); closePops(); if (was) MP.openPop(pt.dataset.pop); return; }
+      const si = e.target.closest('[data-seg] [data-val]');
+      if (si) {
+        const g = si.closest('[data-seg]');
+        if (g.dataset.multi) si.setAttribute('aria-pressed', String(si.getAttribute('aria-pressed') !== 'true'));
+        else g.querySelectorAll('[data-val]').forEach((b) => b.setAttribute('aria-pressed', String(b === si)));
+        const tgt = g.dataset.segTarget && document.querySelector(g.dataset.segTarget);
+        if (tgt) tgt.dataset[g.dataset.seg] = si.dataset.val;
+        MP.onSeg[g.dataset.seg]?.(si.dataset.val, si);
+        return;
+      }
+      const sug = e.target.closest('.mp-chip[data-say]');
+      if (sug) { const ta = sug.closest('.mp-chat')?.querySelector('.mp-composer textarea'); if (ta) { ta.value = MP.t(sug.dataset.say); ta.focus(); } return; }
+      const send = e.target.closest('.mp-send');
+      if (send) { sendChat(send.closest('.mp-chat')); return; }
+      const ap = e.target.closest('[data-apply]');
+      if (ap) {
+        const box = ap.closest('.mp-proposal');
+        box.querySelector('.mp-proposal-actions').innerHTML = `<span class="mp-pill mp-pill-success"><span data-ico="check" class="ico-14"></span>${MP.t('status.done')}</span>`;
+        paintIcons(box); MP.onApply?.(ap.dataset.apply); return;
+      }
+      if (!e.target.closest('.mp-popover')) closePops();
+    });
+    document.addEventListener('input', (e) => { if (e.target.closest('[data-count]')) refreshCounters(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePops();
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.closest('.mp-composer')) sendChat(e.target.closest('.mp-chat'));
+    });
+  }
+  function sendChat(chat) {
+    if (!chat) return;
+    const ta = chat.querySelector('.mp-composer textarea'), log = chat.querySelector('.mp-chat-log');
+    const v = ta.value.trim(); if (!v) return;
+    const u = document.createElement('div'); u.className = 'mp-msg mp-msg-user'; u.textContent = v; log.appendChild(u); ta.value = '';
+    const a = document.createElement('div'); a.className = 'mp-msg mp-msg-agent';
+    const skill = chat.dataset.skill || 'writing-in-style';
+    a.innerHTML = `<span class="mp-avatar">AI</span><div class="mp-msg-body"><div class="mp-msg-who">${MP.t(chat.dataset.who || 'chat.copywriter')}</div><div class="mp-tool"><span class="mp-spin"></span><span class="mp-tool-name">${skill}</span><span class="mp-grow"></span><span class="mp-pill mp-pill-info">${MP.t('status.running')}</span></div></div>`;
+    log.appendChild(a); log.scrollTop = log.scrollHeight;
+    setTimeout(() => {
+      a.querySelector('.mp-tool').innerHTML = `<span data-ico="check" class="ico-14 mp-text-success"></span><span class="mp-tool-name">${skill}</span><span class="mp-grow"></span><span class="mp-pill mp-pill-success">${MP.t('status.done')}</span>`;
+      const p = document.createElement('p'); p.textContent = MP.t('chat.reply'); a.querySelector('.mp-msg-body').appendChild(p); paintIcons(a); log.scrollTop = log.scrollHeight;
+    }, 900);
+  }
+
+  MP.init = function (cfg) {
+    if (cfg.views) VIEWS = cfg.views;
+    buildBar(cfg);
+    document.querySelectorAll('[data-ring-slot]').forEach((s) => { s.outerHTML = MP.ring(s.dataset.ringSlot); });
+    paintIcons(document);
+    wire();
+    applyI18n();
+    const v = location.hash.slice(1);
+    MP.go(VIEWS.includes(v) ? v : cfg.start || 'home');
+    if (qs.get('check')) setTimeout(selfCheck, 300);
+  };
+  /* ?check=1: walk every state, measure real boxes, report anything wider than the pane
+     and any truncated title, into <pre id="mp-check"> for a headless --dump-dom run. */
+  function selfCheck() {
+    const app = document.querySelector('.mp-app'), out = [];
+    MP.checking = true;
+    VIEWS.forEach((v) => {
+      MP.go(v);
+      (MP.checks || []).forEach((fn) => fn(v, out));
+      const box = app.getBoundingClientRect();
+      if (app.scrollWidth > app.clientWidth + 1) out.push(`${v}: app scrollWidth ${app.scrollWidth} > ${app.clientWidth}`);
+      app.querySelectorAll('*').forEach((el) => {
+        if (!el.offsetParent || el.closest('.mp-popover,.mp-seg,.b-board,.b-voice,.c-inline,.a2-sel,.mp-chat-log,.mp-scroll,.a-rail-scroll,[aria-hidden="true"]')) return;
+        const r = el.getBoundingClientRect();
+        if (r.width && r.right > box.right + 1) out.push(`${v}: ${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} right ${Math.round(r.right)} > pane ${Math.round(box.right)}`);
+      });
+      app.querySelectorAll('input.a-title, input.b-ed-title, .c-title, .a2-title, .mp-h1').forEach((el) => {
+        if (!el.offsetParent) return;
+        const need = el.tagName === 'INPUT' ? el.scrollWidth : el.scrollWidth;
+        if (need > el.clientWidth + 1) out.push(`${v}: title clipped ${need}px in ${el.clientWidth}px: ${(el.value || el.textContent).slice(0, 40)}`);
+      });
+    });
+    const pre = document.createElement('pre'); pre.id = 'mp-check'; pre.textContent = JSON.stringify({ width: app.clientWidth, lang: MP.lang, issues: [...new Set(out)].slice(0, 40) });
+    document.body.appendChild(pre);
+  }
+  MP.paintIcons = paintIcons;
+})();
+
+/* Fake data shared by all three variants. User content (posts, chat, voice traits)
+   stays in the author's language; only interface labels go through i18n. */
+(function () {
+  const MP = window.MP;
+  const day = (offset) => { const d = new Date(2026, 10, 5); d.setDate(d.getDate() - offset); return d; };
+  MP.DATA = {
+    profiles: [
+      { id: 'mine', name: 'Мой голос', ini: 'МГ', cls: '', meta: 'profile.mine.meta', status: 'ready' },
+      { id: 'anna', name: 'Анна Ветрова — tech', ini: 'АВ', cls: 'alt', meta: 'profile.anna.meta', status: 'ready' },
+      { id: 'b2b', name: 'B2B без воды', ini: 'B2', cls: 'alt2', meta: 'profile.b2b.meta', status: 'lowdata' },
+    ],
+    platforms: ['tg', 'x', 'dzen', 'vk'],
+    more: ['li', 'th', 'ig'],
+    posts: [
+      { id: 'p1', plat: 'tg', title: 'Почему я перестал делать роадмапы', status: 'writing', d: 0, chars: 461, go: 'tg', snip: 'Полгода без роадмапа — и релизов стало вдвое больше.' },
+      { id: 'p2', plat: 'x', title: 'Тред: роадмапы против ставок', status: 'draft', d: 0, tweets: 3, go: 'x', snip: 'I stopped writing roadmaps six months ago…' },
+      { id: 'p11', plat: 'tg', title: 'Идея: найм без тестовых заданий', status: 'draft', d: 1, chars: 0, snip: 'Тезисы: 3 пункта, текста пока нет' },
+      { id: 'p3', plat: 'dzen', title: 'Как собрать контент-завод на агентах', status: 'draft', d: 1, chars: 6420, snip: '4 раздела · обложка не выбрана', article: true },
+      { id: 'p10', plat: 'vk', title: 'Подборка: что почитать на выходных', status: 'draft', d: 2, chars: 380, snip: '5 ссылок, 2 фото' },
+      { id: 'p4', plat: 'tg', title: '5 инструментов, которые я выкинул', status: 'ready', d: 1, chars: 940, snip: 'Начал с вопроса, закончил списком.' },
+      { id: 'p12', plat: 'x', title: 'Thread: hiring without test tasks', status: 'ready', d: 2, tweets: 5, snip: '5 твитов · EN + RU' },
+      { id: 'p5', plat: 'vk', title: 'Анонс эфира в четверг', status: 'ready', d: 3, chars: 410, snip: 'Опрос + обложка' },
+      { id: 'p6', plat: 'tg', title: 'Итоги октября', status: 'published', d: 4, chars: 1610, snip: '1 610 знаков · 3,2 тыс. просмотров' },
+      { id: 'p7', plat: 'x', title: 'Short take: pricing pages', status: 'published', d: 6, tweets: 1, snip: '1 твит · EN + RU' },
+      { id: 'p8', plat: 'tg', title: 'Ошибка, которая стоила нам месяца', status: 'published', d: 8, chars: 1312, snip: 'Признание ошибки — любимый жанр профиля.' },
+      { id: 'p9', plat: 'dzen', title: 'Гайд: ставки вместо дат', status: 'published', d: 11, chars: 8900, snip: 'Статья · 7 мин чтения', article: true },
+    ],
+    tg: [
+      'Полгода без роадмапа — и релизов стало вдвое больше.',
+      'Вот что произошло. Роадмап на квартал устаревал через три недели. Мы тратили пятницы на то, чтобы двигать карточки, а не продукт.',
+      'Теперь у нас одна страница: <b>три ставки на месяц и почему именно они</b>. Всё остальное — бэклог, и он никого ни к чему не обязывает.',
+      'Что сломалось: стейкхолдерам стало тревожно. Пришлось раз в две недели показывать демо вместо дат.',
+      'А вы как планируете — по датам или по ставкам?',
+    ],
+    tweets: [
+      { en: 'I stopped writing roadmaps six months ago. We now ship twice as often. Here is what replaced them 🧵', ru: 'Полгода назад я перестал писать роадмапы. Релизов стало вдвое больше. Рассказываю, что пришло на смену 🧵' },
+      { en: 'One page. Three bets for the month and why each one matters. Everything else is backlog, and backlog promises nothing.', ru: 'Одна страница. Три ставки на месяц и почему именно они. Всё остальное — бэклог, а бэклог ничего не обещает.', stale: true },
+      { en: 'What broke: stakeholders got nervous. The fix was a demo every two weeks instead of dates. How do you plan: by dates or by bets?', ru: 'Что сломалось: стейкхолдеры занервничали. Лечение — демо раз в две недели вместо дат. А вы планируете по датам или по ставкам?' },
+    ],
+    metrics: [
+      ['portrait.corpus', { ru: '146 постов · 58 тыс. знаков', en: '146 posts · 58k chars' }],
+      ['portrait.sentence', { ru: '11,4 слова', en: '11.4 words' }],
+      ['portrait.postlen', { ru: '620 знаков', en: '620 chars' }],
+      ['portrait.para', { ru: '1–2 предложения', en: '1–2 sentences' }],
+      ['portrait.emoji', { ru: '0,3', en: '0.3' }],
+      ['portrait.qopen', { ru: '38%', en: '38%' }],
+    ],
+    voice: ['Разговорный, от первого лица', 'Ирония без сарказма', 'Доказывает личным опытом, а не цифрами', 'Ошибки признаёт прямо, в первой строке', 'Начинает с вывода, потом история', 'Заканчивает коротким вопросом читателю'],
+    rules: ['Первая строка — вывод или вопрос, до 70 знаков', 'Не больше одного эмодзи на пост', 'Без канцелярита: «осуществлять», «является»', 'Табу: «друзья», «лайфхак», «в современном мире»'],
+    leak: 'продуктовый менеджмент, найм, планирование',
+  };
+  const PILL = { draft: 'muted', writing: 'info', ready: 'success', published: 'neutral', building: 'info', lowdata: 'warning', waiting: 'muted', done: 'success', running: 'info', stale: 'warning', over: 'danger' };
+  MP.pill = (s) => `<span class="mp-pill mp-pill-${PILL[s]}">${s === 'writing' || s === 'running' || s === 'building' ? '<span class="mp-spin" style="width:10px;height:10px;border-width:1.5px"></span>' : ''}<span data-i18n="status.${s}">${MP.t('status.' + s)}</span></span>`;
+  MP.tile = (plat, size = '') => `<span class="mp-tile ${size}" aria-label="${MP.t('plat.' + plat)}">${MP.icons(plat)}</span>`;
+  MP.L = (o) => (typeof o === 'string' ? o : o[MP.lang] || o.en);
+  MP.when = (p) => (p.d === 0 ? MP.t('time.today') : p.d === 1 ? MP.t('time.yday') : day(p.d).toLocaleDateString(MP.lang, { day: 'numeric', month: 'short' }));
+  MP.size = (p) => (p.tweets ? `${p.tweets} × EN+RU` : p.chars ? `${p.chars.toLocaleString(MP.lang)} ${MP.t('post.chars')}` : '—');
+  MP.count = (plat, status) => MP.DATA.posts.filter((p) => p.plat === plat && (!status || p.status === status)).length;
+  MP.avatar = (p, size = '') => `<span class="mp-avatar ${p.cls} ${size}">${p.ini}</span>`;
+})();
+
+/* Shared markup builders. Each variant arranges these differently. */
+(function () {
+  const MP = window.MP, D = MP.DATA, t = (k) => MP.t(k), T = (k) => `<span data-i18n="${k}">${MP.t(k)}</span>`, I = (n, c = '') => `<span class="${c}">${MP.icons(n)}</span>`;
+
+  MP.switcherHTML = (sel = 'mine') => `
+    <div style="padding:4px 4px 2px"><div style="position:relative"><span style="position:absolute;left:9px;top:8px;color:var(--muted-foreground)">${MP.icons('search')}</span>
+      <input class="mp-input" style="padding-left:32px" data-i18n-ph="profile.search"></div></div>
+    <div class="mp-menu-label">${T('profile.profiles')}</div>
+    ${D.profiles.map((p) => `
+      <button class="mp-nav-item" data-go="home" ${p.id === sel ? 'aria-selected="true"' : ''}>
+        ${MP.avatar(p)}
+        <span class="mp-grow"><span class="mp-truncate" style="display:block;font-weight:500;color:var(--foreground)">${p.name}</span><span class="mp-row" style="gap:6px"><span class="mp-meta mp-truncate">${T(p.meta)}</span>${p.status === 'lowdata' ? MP.pill('lowdata') : ''}</span></span>
+        ${p.id === sel ? I('check') : ''}
+      </button>`).join('')}
+    <hr class="mp-divider" style="margin:6px 0">
+    <button class="mp-nav-item" data-go="create" style="min-height:36px"><span class="mp-tile sm">${MP.icons('plus')}</span><span style="color:var(--foreground);font-weight:500">${T('profile.create')}</span></button>
+    <button class="mp-nav-item" style="min-height:36px"><span class="mp-tile sm">${MP.icons('user')}</span><span>${T('profile.manage')}</span></button>`;
+
+  MP.pickerHTML = () => `
+    <div class="mp-row" style="padding:6px 8px 6px"><span class="mp-h2">${T('post.pick')}</span><span class="mp-grow"></span>
+      <span class="mp-seg" data-seg="kind"><button class="mp-seg-item" data-val="post" aria-pressed="true">${T('post.kind.post')}</button><button class="mp-seg-item" data-val="article">${T('post.kind.article')}</button></span></div>
+    <div class="mp-plat-grid">${D.platforms.map((p) => `<button class="mp-plat-btn" ${p === 'tg' || p === 'x' ? `data-go="${p}"` : 'data-proto-only'} data-plat="${p}">${MP.tile(p)}<span>${T('plat.' + p)}</span></button>`).join('')}</div>
+    <div class="mp-menu-label">${T('plat.soon')}</div>
+    <div class="mp-plat-grid">${D.more.map((p) => `<button class="mp-plat-btn" aria-disabled="true">${MP.tile(p)}<span>${T('plat.' + p)}</span></button>`).join('')}
+      <button class="mp-plat-btn">${`<span class="mp-tile">${MP.icons('plus')}</span>`}<span>${T('plat.more')}</span></button></div>`;
+  MP.onSeg.kind = (v, el) => { el.closest('.mp-popover').querySelectorAll('[data-plat]').forEach((b) => { const no = v === 'article' && b.dataset.plat === 'x'; b.setAttribute('aria-disabled', String(no)); }); };
+
+  MP.composer = (ph) => `
+    <div class="mp-composer"><textarea rows="2" data-i18n-ph="${ph}"></textarea>
+      <div class="mp-composer-row">
+        <button class="mp-btn sm icon ghost" data-i18n-aria="chat.attach">${MP.icons('clip')}</button>
+        <button class="mp-model"><i></i>${T('chat.model')}${MP.icons('chev')}</button>
+        <span class="mp-grow"></span><span class="mp-kbd">⌘↵</span>
+        <button class="mp-send" data-i18n-aria="chat.send">${MP.icons('send')}</button>
+      </div></div>`;
+  MP.chips = (keys) => `<div class="mp-suggest" style="padding:0 12px 8px">${keys.map((k) => `<button class="mp-chip" data-say="${k}">${T(k)}</button>`).join('')}</div>`;
+  const agent = (who, body) => `<div class="mp-msg mp-msg-agent"><span class="mp-avatar">AI</span><div class="mp-msg-body"><div class="mp-msg-who">${T(who)}</div>${body}</div></div>`;
+  const user = (s) => `<div class="mp-msg mp-msg-user">${s}</div>`;
+  const tool = (name, arg, st) => `<div class="mp-tool">${st === 'running' ? '<span class="mp-spin"></span>' : st === 'waiting' ? `<span class="ico-14" style="color:var(--muted-foreground)">${MP.icons('clock')}</span>` : `<span class="ico-14 mp-text-success">${MP.icons('check')}</span>`}<span class="mp-tool-name">${name}</span><span class="mp-meta mp-truncate">${arg}</span><span class="mp-grow"></span>${MP.pill(st)}</div>`;
+  MP.tool = tool;
+
+  MP.createLog = () => [
+    agent('chat.style_agent', '<p>Пришлите ссылку на канал или перетащите тексты — сниму стиль автора. Нужно хотя бы 8 текстов от 80 слов, надёжнее — от 20 000 знаков.</p>'),
+    user('https://t.me/bez_filtrov_demo — это мой канал, возьми последние 150 постов'),
+    agent('chat.style_agent', tool('corpus', 't.me/bez_filtrov_demo · 157 → 146, пересылов отброшено 11', 'done') + tool('style-portrait', 'слой A · metrics', 'done') + tool('style-portrait', 'слой B · голос', 'running') +
+      '<p>Замеры готовы: предложения короткие (11,4 слова), абзацы по 1–2 предложения, эмодзи почти нет. Сейчас читаю корпус кусками, чтобы описать голос: как вы начинаете посты, как спорите и как признаёте ошибки.</p>'),
+  ].join('');
+
+  MP.styleLog = () => [
+    user('Добавь в табу «кейс» и «инсайт» — я их не пишу'),
+    agent('chat.style_agent', tool('style-portrait', 'слой C · правила', 'done') + '<p>Добавил в слой C. Новые черновики будут без этих слов; старые не трогаю.</p>'),
+    user('Почему в портрете «ирония без сарказма»?'),
+    agent('chat.style_agent', '<p>В 41 посте из 146 есть самоирония про собственные решения, и ни разу — насмешка над читателем. Пример: «Я, конечно, гений планирования: третий роадмап за квартал».</p>'),
+  ].join('');
+
+  MP.tgLog = () => [
+    user('Сделай первую строку острее и убери слово «кликбейт»'),
+    agent('chat.copywriter', tool('writing-in-style', 'профиль «Мой голос»', 'done') +
+      '<p>Переписал начало: первая строка теперь 52 знака (правило профиля — до 70), «кликбейт» убрал, абзац стал на 18% короче.</p>' +
+      `<div class="mp-proposal"><div class="mp-proposal-row"><span class="mp-meta">${T('chat.before')}</span><br><del>Я полгода не пишу роадмапы. И команда стала выпускать больше. Звучит как кликбейт, но вот что произошло.</del></div>
+       <div class="mp-proposal-row"><span class="mp-meta">${T('chat.after')}</span><br><ins>Полгода без роадмапа — и релизов стало вдвое больше. Вот что произошло.</ins></div>
+       <div class="mp-proposal-actions"><span class="mp-pill mp-pill-success">${I('check', 'ico-14')}${T('status.done')}</span></div></div>`),
+    user('Проверь под Telegram: длина и форматирование'),
+    agent('chat.copywriter', tool('telegram-rules', '4096 · markdown', 'done') +
+      '<p>461 из 4096 знаков — запас большой, сокращать не нужно. Жирным выделил тезис в третьем абзаце, ссылок нет — превью не понадобится. В последней строке вопрос читателю, как у вас в 72% постов.</p>' +
+      `<div class="mp-proposal"><div class="mp-proposal-row"><span class="mp-meta">${T('chat.after')}</span><br>А вы как планируете — <ins>по датам или по ставкам?</ins> Пишите в комментариях, соберу ответы в следующий пост.</div>
+       <div class="mp-proposal-actions"><button class="mp-btn sm mp-raised" data-apply="tg-end">${I('check')}${T('chat.apply')}</button><button class="mp-btn sm ghost">${T('chat.reject')}</button></div></div>`),
+  ].join('');
+
+  MP.xLog = () => [
+    user('Сделай из поста про роадмапы тред на 3 твита'),
+    agent('chat.copywriter', tool('writing-in-style', 'профиль «Мой голос» · X', 'done') + tool('x-twins', 'EN → RU, 3 × 2', 'done') +
+      '<p>Готово: 3 твита, у каждого две версии. EN пишу первой, RU — не дословный перевод, а та же мысль в голосе профиля. Все твиты укладываются в 280.</p>'),
+    `<div class="mp-tool" style="align-self:stretch">${I('refresh', 'ico-14 mp-text-warning')}<span>Вы изменили EN во 2-м твите — RU отстаёт.</span><span class="mp-grow"></span><button class="mp-btn sm mp-raised" data-say="sug.translate" onclick="this.closest('.mp-chat').querySelector('textarea').value=MP.t('sug.translate')">${T('sug.translate')}</button></div>`,
+  ].join('');
+
+  MP.chatHTML = ({ who = 'chat.copywriter', skill = 'writing-in-style', log = '', ph = 'chat.ph', chips = [], head = '' }) =>
+    `<div class="mp-chat" data-who="${who}" data-skill="${skill}">${head}<div class="mp-chat-log">${log}</div>${chips.length ? MP.chips(chips) : ''}${MP.composer(ph)}</div>`;
+
+  /* Portrait: state = 'building' (A done, B running, C waiting) or 'done'. */
+  MP.portraitHTML = (state, { compact = false } = {}) => {
+    const b = state === 'done';
+    const rowsA = D.metrics.slice(0, compact ? 4 : 6).map(([k, v]) => `<div class="mp-trait"><span class="k">${T(k)}</span><span class="v">${MP.L(v)}</span></div>`).join('');
+    const sk = (w) => `<div class="mp-skel" style="width:${w}%;margin:8px 0"></div>`;
+    const head = (k, st) => `<div class="mp-layer" style="margin:12px 0 4px"><span class="mp-h2">${T(k)}</span><span class="mp-grow"></span>${MP.pill(st)}</div>`;
+    return `${head('portrait.layerA', 'done')}${rowsA}
+      ${head('portrait.layerB', b ? 'done' : 'running')}
+      ${b ? `<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7">${D.voice.slice(0, compact ? 4 : 6).map((v) => `<li>${v}</li>`).join('')}</ul>` : `<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7"><li>${D.voice[0]}</li><li>${D.voice[1]}</li></ul>${sk(80)}${sk(56)}`}
+      ${head('portrait.layerC', b ? 'done' : 'waiting')}
+      ${b ? `<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7">${D.rules.map((v) => `<li>${v}</li>`).join('')}</ul>` : `${sk(70)}${sk(45)}`}
+      ${b && !compact ? `<p class="mp-meta" style="margin:12px 0 0">${T('portrait.leak')}: ${D.leak}.</p>` : ''}`;
+  };
+
+  MP.portraitProgress = () => `<span class="mp-row" style="gap:4px;flex-wrap:wrap"><span class="mp-pill mp-pill-success">A ✓</span><span class="mp-pill mp-pill-info"><span class="mp-spin" style="width:10px;height:10px;border-width:1.5px"></span>B</span><span class="mp-pill mp-pill-muted">C</span></span>`;
+  MP.tgDocHTML = () => D.tg.map((p, i) => `<p${i === 0 ? ' class="mp-fresh-wrap"' : ''}>${i === 0 ? `<span class="mp-fresh">${p}</span>` : i === 4 ? `<span id="tg-end">${p}</span>` : p}</p>`).join('');
+  MP.onApply = (id) => { if (id === 'tg-end') document.querySelectorAll('#tg-end').forEach((e) => { e.innerHTML = 'А вы как планируете — <span class="mp-fresh">по датам или по ставкам?</span> Пишите в комментариях, соберу ответы в следующий пост.'; }); MP.refreshCounters(); };
+
+  /* One tweet: EN + RU twins. layout 'stack' (EN above RU) or 'side' (columns). */
+  MP.tweetHTML = (i, tw, layout, pfx) => {
+    const half = (lang) => `
+      <div class="mp-twin">
+        <div class="mp-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:4px"><span class="mp-pill ${lang === 'en' ? 'mp-pill-neutral' : 'mp-pill-muted'}">${lang.toUpperCase()}</span>
+          ${lang === 'ru' && tw.stale ? MP.pill('stale') : ''}<span class="mp-grow"></span>
+          <span class="mp-row" style="gap:6px"><span class="mp-count" id="${pfx}c${i}${lang}"></span><span data-ring-slot="${pfx}r${i}${lang}"></span></span></div>
+        <textarea class="mp-tweet-ta" data-count="280" data-count-out="${pfx}c${i}${lang}" data-ring="${pfx}r${i}${lang}" aria-label="${t('x.tweet')} ${i + 1} ${lang.toUpperCase()}">${tw[lang]}</textarea>
+      </div>`;
+    return `<div class="mp-tweet mp-tweet-${layout}" data-layout="${layout}"><div class="mp-row mp-tweet-head"><span class="mp-meta mp-num">${T('x.tweet')} ${i + 1}</span><span class="mp-grow"></span><button class="mp-btn sm icon ghost" aria-label="more">${MP.icons('more')}</button></div><div class="mp-tweet-body">${half('en')}${half('ru')}</div></div>`;
+  };
+})();
+
+</script>
+<script>
+(function () {
+  const MP = window.MP, D = MP.DATA;
+  MP.add({
+    'view.tgprev': 'TG preview', 'view.narrow': 'Narrow: chat',
+    'a.tab.rail': 'Posts', 'a.tab.voice': 'Voice', 'a.platforms': 'Platforms', 'a.overview': 'Overview', 'a.stylechat': 'Style chat',
+    'a.refresh': 'Refresh portrait', 'a.portrait_from': 'portrait of Nov 3', 'a.recent': 'Recent posts', 'a.new_profile': 'New profile', 'a.cancel': 'Cancel',
+    'a.no_profile': 'No profile', 'a.pick_profile': 'Create the first one', 'a.create_note': 'Platforms and posts appear once the profile is saved.', 'a.empty_note': 'Profiles you create will be listed here.',
+    'a.c.draft': 'draft', 'a.c.ready': 'ready', 'a.c.published': 'live',
+    'a2.back': 'Back to profile', 'a2.crumb': 'Breadcrumb', 'a2.tab.post': 'Post', 'a2.tab.chat': 'Chat', 'a2.editor': 'Editor', 'a2.preview': 'Preview',
+    'a2.saved': 'Saved · 12:40', 'a2.seltools': 'Selection actions', 'a2.sharper': 'Sharper', 'a2.invoice': 'In profile voice', 'a2.ask': 'Ask…',
+    'a2.ask.shorter': 'Make this shorter', 'a2.ask.sharper': 'Make this sharper', 'a2.ask.voice': 'Rewrite this in the profile voice', 'a2.ask.ph': 'What should change here?',
+    'a2.reply.sel': 'Here is a version. The rest of the post is untouched.', 'a2.rejected': 'Rejected', 'a2.pending': 'proposals waiting',
+    'a2.subs': '2 140 subscribers', 'a2.prevnote': 'Preview approximates the platform; fonts and line breaks may differ.',
+    'a2.divider': 'Resize the chat column', 'a2.model.default': 'default', 'a2.model.all': 'All BB models…', 'a2.models': 'Model',
+    'a2.marked': 'Ready', 'a2.stale_hint': 'EN was edited after this RU', 'a2.synced': 'RU of tweet {n} rewritten from the new EN, in the profile voice.',
+  }, {
+    'view.tgprev': 'Превью TG', 'view.narrow': 'Узко: чат',
+    'a.tab.rail': 'Посты', 'a.tab.voice': 'Голос', 'a.platforms': 'Площадки', 'a.overview': 'Обзор', 'a.stylechat': 'Чат стиля',
+    'a.refresh': 'Обновить портрет', 'a.portrait_from': 'портрет от 3 нояб.', 'a.recent': 'Последние посты', 'a.new_profile': 'Новый профиль', 'a.cancel': 'Отмена',
+    'a.no_profile': 'Нет профиля', 'a.pick_profile': 'Создайте первый', 'a.create_note': 'Площадки и посты появятся, когда профиль будет сохранён.', 'a.empty_note': 'Здесь будут профили, которые вы создадите.',
+    'a.c.draft': 'черн.', 'a.c.ready': 'гот.', 'a.c.published': 'опубл.',
+    'a2.back': 'К профилю', 'a2.crumb': 'Путь', 'a2.tab.post': 'Пост', 'a2.tab.chat': 'Чат', 'a2.editor': 'Редактор', 'a2.preview': 'Превью',
+    'a2.saved': 'Сохранено · 12:40', 'a2.seltools': 'Действия с выделенным', 'a2.sharper': 'Острее', 'a2.invoice': 'В голосе профиля', 'a2.ask': 'Спросить…',
+    'a2.ask.shorter': 'Сократи это', 'a2.ask.sharper': 'Сделай острее', 'a2.ask.voice': 'Перепиши в голосе профиля', 'a2.ask.ph': 'Что здесь поменять?',
+    'a2.reply.sel': 'Вот вариант. Остальной текст не трогал.', 'a2.rejected': 'Отклонено', 'a2.pending': 'предложений ждут',
+    'a2.subs': '2 140 подписчиков', 'a2.prevnote': 'Превью приблизительное: шрифты и переносы на площадке могут отличаться.',
+    'a2.divider': 'Изменить ширину чата', 'a2.model.default': 'по умолчанию', 'a2.model.all': 'Все модели BB…', 'a2.models': 'Модель',
+    'a2.marked': 'Готов', 'a2.stale_hint': 'EN правили после этого RU', 'a2.synced': 'RU твита {n} переписан по новому EN, в голосе профиля.',
+  });
+  const T = (k) => `<span data-i18n="${k}">${MP.t(k)}</span>`;
+  const $ = (id) => document.getElementById(id);
+  const POST_VIEWS = ['tg', 'x', 'tgprev', 'narrow'];
+  const plat = (v) => (v === 'x' ? 'x' : 'tg');
+  let filter = 'all', xlang = 'en', selText = '', stale = D.tweets.map((t) => !!t.stale), ready = false;
+  const RU_FIX = { 1: 'Одна страница: три ставки на месяц и почему именно они. Остальное — бэклог, а бэклог ничего не обещает.' };
+  const SEL_ANSWERS = { shorter: 'Квартальный роадмап устаревал за три недели.', sharper: 'Квартальный роадмап умирал через три недели.', voice: 'Роадмап на квартал жил три недели — дальше мы двигали карточки, а не продукт.' };
+
+  /* ---------- Profile level (A) ---------- */
+  function renderLists() {
+    $('a-plat').innerHTML =
+      `<button class="mp-nav-item" data-filter="all" aria-selected="${filter === 'all'}"><span class="mp-tile sm">${MP.icons('list')}</span>${T('plat.all')}<span class="n">${D.posts.length}</span></button>` +
+      D.platforms.map((p) => `<button class="mp-nav-item" data-filter="${p}" aria-selected="${filter === p}">${MP.tile(p, 'sm')}${T('plat.' + p)}<span class="n">${MP.count(p)}</span></button>`).join('') +
+      `<button class="mp-nav-item"><span class="mp-tile sm">${MP.icons('plus')}</span>${T('plat.more')}</button>`;
+    const row = (p, sel) => `<button class="mp-nav-item a-post" ${p.go ? `data-go="${p.go}"` : ''} ${p.id === sel ? 'aria-current="page"' : ''}>${MP.tile(p.plat, 'sm')}
+        <span class="mp-grow"><span class="t mp-truncate">${p.title}</span><span class="m">${MP.pill(p.status)}<span class="mp-meta">${MP.when(p)}</span></span></span></button>`;
+    $('a-posts').innerHTML = D.posts.filter((p) => filter === 'all' || p.plat === filter).map((p) => row(p, '')).join('');
+    const cur = MP.view === 'x' ? 'p2' : 'p1';
+    $('a2-posts').innerHTML = `<div class="mp-menu-label">${T('post.posts')} · Мой голос</div>` + D.posts.slice(0, 8).map((p) => row(p, cur)).join('');
+    $('a-recent').innerHTML = D.posts.slice(0, 6).map((p) =>
+      `<div class="a-row" ${p.go ? `data-go="${p.go}" role="button" tabindex="0"` : ''}>${MP.tile(p.plat)}<span class="mp-grow"><span class="mp-truncate" style="display:block;font-weight:500">${p.title}</span><span class="mp-meta mp-truncate" style="display:block">${p.snip}</span></span>
+        <span class="mp-meta mp-num" style="white-space:nowrap">${MP.size(p)}</span>${MP.pill(p.status)}</div>`).join('');
+    $('a-platcards').innerHTML = D.platforms.map((p) =>
+      `<div class="a-platcard">${MP.tile(p, 'lg')}<span class="mp-grow"><span style="display:block;font-weight:500">${T('plat.' + p)}</span><span class="mp-meta">${T('rules.' + p)}</span></span>
+        <span class="mp-meta mp-num" style="text-align:right;white-space:nowrap">${['draft', 'ready', 'published'].map((s) => MP.count(p, s) ? `${MP.count(p, s)} ${MP.t('a.c.' + s)}` : '').filter(Boolean).join(' · ')}</span></div>`).join('');
+    $('a-sw').innerHTML = MP.switcherHTML('mine');
+    $('a-new').innerHTML = MP.pickerHTML();
+  }
+  document.addEventListener('click', (e) => {
+    const f = e.target.closest('[data-filter]');
+    if (f) { filter = f.dataset.filter; renderLists(); MP.applyI18n(); }
+  });
+
+  /* ---------- Post level ---------- */
+  function tweetHTML(i, tw) {
+    const half = (lang) => `
+      <div class="mp-twin${lang === 'ru' && stale[i] ? ' is-stale' : ''}" data-twin="${i}-${lang}">
+        <div class="mp-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:4px"><span class="mp-pill ${lang === 'en' ? 'mp-pill-neutral' : 'mp-pill-muted'}">${lang.toUpperCase()}</span>
+          ${lang === 'ru' ? `<span class="a2-stale-only">${MP.pill('stale')}</span>` : ''}<span class="mp-grow"></span>
+          <span class="mp-row" style="gap:6px"><span class="mp-count" id="a2c${i}${lang}"></span><span data-ring-slot="a2r${i}${lang}"></span></span></div>
+        <textarea class="mp-tweet-ta" data-tw="${i}" data-lang="${lang}" data-count="280" data-count-out="a2c${i}${lang}" data-ring="a2r${i}${lang}" aria-label="${MP.t('x.tweet')} ${i + 1} ${lang.toUpperCase()}">${tw[lang]}</textarea>
+        ${lang === 'ru' ? `<div class="a2-sync-row" style="display:none"><span class="mp-meta mp-grow" data-i18n="a2.stale_hint">${MP.t('a2.stale_hint')}</span><button class="mp-btn sm mp-raised" data-a2-sync="${i}">${MP.icons('refresh')}${T('sug.translate')}</button></div>` : ''}
+      </div>`;
+    return `<div class="mp-tweet a2-tweet"><div class="mp-row mp-tweet-head"><span class="mp-meta mp-num">${T('x.tweet')} ${i + 1}</span><span class="mp-grow"></span><button class="mp-btn sm icon ghost" aria-label="more">${MP.icons('more')}</button></div><div class="a2-tw-body">${half('en')}${half('ru')}</div></div>`;
+  }
+  function renderX() {
+    $('a2-xprev').innerHTML = [...document.querySelectorAll('#a2-tweets textarea[data-lang="' + xlang + '"]')].map((ta, i, all) => `
+      <div class="a2-xcard"><div class="who"><span class="mp-avatar">МГ</span><b style="font-weight:600">Мой голос</b><span class="mp-meta mp-truncate">@bez_filtrov · ${i + 1}/${all.length}</span><span class="mp-grow"></span>${MP.icons('x')}</div>${ta.value.replace(/</g, '&lt;')}</div>`).join('');
+  }
+  function renderBubble() {
+    const doc = $('a2-tg-doc').cloneNode(true);
+    doc.querySelectorAll('.mp-hl, .mp-fresh').forEach((s) => s.replaceWith(...s.childNodes));
+    $('a2-bubble').innerHTML = [...doc.querySelectorAll('p')].map((p) => `<p>${p.innerHTML}</p>`).join('') + `<div class="ft"><span class="mp-row" style="gap:4px">${MP.icons('eye')}—</span><span>12:40</span></div>`;
+  }
+  const chatHead = () => `<div class="mp-chat-head"><span class="mp-avatar" style="width:24px;height:24px;font-size:10px">AI</span><span class="mp-h2">${T('chat.copywriter')}</span><span class="mp-meta mp-truncate">· Мой голос</span><span class="mp-grow"></span><button class="mp-btn sm icon ghost" aria-label="more">${MP.icons('more')}</button></div>`;
+  function modelMenu() {
+    const row = (name, note, on) => `<button class="mp-nav-item" style="min-height:36px" ${on ? 'aria-selected="true"' : ''}><span class="mp-model" style="padding:0"><i></i></span><span class="mp-grow" style="color:var(--foreground)">${name}</span>${note}${on ? MP.icons('check') : ''}</button>`;
+    $('a2-model').innerHTML = `<div class="mp-menu-label">${T('a2.models')}</div>` + row('Claude Opus', `<span class="mp-meta">${T('a2.model.default')}</span>`, true) + row('Claude Sonnet', '', false) +
+      `<hr class="mp-divider" style="margin:6px 0"><button class="mp-nav-item" style="min-height:36px">${T('a2.model.all')}</button>`;
+  }
+  function renderOnce() {
+    $('a-portrait').innerHTML = MP.portraitHTML('done', { compact: true });
+    $('a-ready-pill').innerHTML = MP.pill('ready');
+    $('a-build-pill').innerHTML = MP.pill('building');
+    $('a-stylechat').innerHTML = MP.chatHTML({ who: 'chat.style_agent', skill: 'style-portrait', log: MP.styleLog(), ph: 'chat.ph_profile' });
+    $('a-create').innerHTML = MP.chatHTML({ who: 'chat.style_agent', skill: 'style-portrait', ph: 'chat.ph_profile',
+      log: `<details class="mp-panel a-pinned"><summary class="mp-panel-head" style="cursor:pointer;list-style:none"><span data-ico="spark"></span>${T('portrait.title')}<span class="mp-grow"></span>${MP.portraitProgress()}<span data-ico="chev" style="color:var(--muted-foreground)"></span></summary>
+        <div class="mp-panel-body"><div class="mp-row"><span class="mp-meta" style="width:46%">${T('portrait.name')}</span><input class="mp-input" value="Мой голос" style="flex:1"></div>
+        ${MP.portraitHTML('building', { compact: true })}<div class="mp-row" style="margin-top:12px"><span class="mp-grow"></span><button class="mp-btn mp-accent" disabled>${T('portrait.save')}</button></div></div></details>` + MP.createLog() });
+    $('a2-chat-tg').innerHTML = MP.chatHTML({ head: chatHead(), log: MP.tgLog(), chips: ['sug.shorter', 'sug.hooks', 'sug.taboo'] });
+    $('a2-chat-x').innerHTML = MP.chatHTML({ head: chatHead(), log: MP.xLog(), chips: ['sug.shorter', 'sug.hooks', 'sug.taboo'] });
+    // The x-twins row in the chat does the same as the button in the post.
+    document.querySelectorAll('#a2-chat-x [data-say="sug.translate"]').forEach((b) => { b.removeAttribute('onclick'); b.removeAttribute('data-say'); b.dataset.a2Sync = '1'; });
+    document.querySelectorAll('.a2-chat .mp-model').forEach((b) => { b.dataset.pop = 'a2-model'; b.setAttribute('aria-haspopup', 'menu'); });
+    modelMenu();
+    $('a2-tg-doc').innerHTML = MP.tgDocHTML().replace('Роадмап на квартал устаревал через три недели.', '<span class="mp-hl">Роадмап на квартал устаревал через три недели.</span>');
+    $('a2-tweets').innerHTML = D.tweets.map((tw, i) => tweetHTML(i, tw)).join('');
+  }
+
+  /* Pending proposals -> badge on the Chat tab */
+  function updateBadge() {
+    const box = document.querySelector(MP.view === 'x' ? '#a2-chat-x' : '#a2-chat-tg');
+    const n = box ? box.querySelectorAll('[data-apply]').length + (MP.view === 'x' ? stale.filter(Boolean).length : 0) : 0;
+    $('a2-badge').textContent = n ? String(n) : '';
+    $('a2-badge').setAttribute('aria-label', `${n} ${MP.t('a2.pending')}`);
+  }
+  function setPane(p) {
+    const w = document.querySelector('.a2-work'); w.dataset.pane = p;
+    document.querySelectorAll('.a2-tabs [data-val]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === p)));
+    if (p === 'post') requestAnimationFrame(placeSel);
+    if (p === 'chat') document.querySelectorAll('.a2-chat .mp-chat-log').forEach((l) => { l.scrollTop = l.scrollHeight; });
+  }
+  function setMode(m) {
+    document.querySelector('.a2-post').dataset.mode = m;
+    document.querySelectorAll('[data-seg="mode"] [data-val]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === m)));
+    if (m === 'preview') { renderBubble(); renderX(); } else requestAnimationFrame(placeSel);
+  }
+  MP.onSeg.pane = (v) => setPane(v);
+  MP.onSeg.mode = (v) => setMode(v);
+  MP.onSeg.xlang = (v) => { xlang = v; renderX(); };
+  const isTabs = () => document.querySelector('.mp-app').clientWidth <= 900;
+
+  /* Selection toolbar: follows the real selection (or the pre-highlighted sentence). */
+  function placeSel() {
+    const bar = $('a2-sel'), hl = document.querySelector('#a2-tg-doc .mp-hl');
+    if (!hl || !hl.offsetParent) { bar.hidden = true; return; }
+    bar.hidden = false;
+    const host = bar.parentElement.getBoundingClientRect(), r = hl.getClientRects()[0];
+    const left = Math.max(0, Math.min(r.left - host.left, host.width - bar.offsetWidth));
+    let top = r.top - host.top - bar.offsetHeight - 6;
+    if (top < -bar.offsetHeight + 4) top = r.bottom - host.top + 6;
+    bar.style.left = left + 'px'; bar.style.top = top + 'px';
+    selText = hl.textContent;
+  }
+  function markSelection() {
+    const s = window.getSelection(), doc = $('a2-tg-doc');
+    if (!s.rangeCount || s.isCollapsed || !doc.contains(s.anchorNode) || !doc.contains(s.focusNode)) return;
+    const range = s.getRangeAt(0);
+    doc.querySelectorAll('.mp-hl').forEach((h) => h.replaceWith(...h.childNodes));
+    const span = document.createElement('span'); span.className = 'mp-hl';
+    try { range.surroundContents(span); } catch (err) { span.textContent = range.toString(); range.deleteContents(); range.insertNode(span); }
+    s.removeAllRanges();
+    placeSel();
+  }
+  document.addEventListener('mouseup', (e) => { if (e.target.closest('#a2-tg-doc')) setTimeout(markSelection, 0); });
+  document.addEventListener('keyup', (e) => { if (e.shiftKey && e.target.closest('#a2-tg-doc')) markSelection(); });
+
+  function agentMsg(inner) {
+    const a = document.createElement('div'); a.className = 'mp-msg mp-msg-agent';
+    a.innerHTML = `<span class="mp-avatar">AI</span><div class="mp-msg-body"><div class="mp-msg-who">${T('chat.copywriter')}</div>${inner}</div>`;
+    return a;
+  }
+  function askSelection(kind) {
+    const chat = $('a2-chat-tg'), log = chat.querySelector('.mp-chat-log'), ta = chat.querySelector('textarea');
+    if (isTabs()) setPane('chat');
+    if (kind === 'ask') { ta.value = `«${selText}» — `; ta.placeholder = MP.t('a2.ask.ph'); ta.focus(); return; }
+    const u = document.createElement('div'); u.className = 'mp-msg mp-msg-user';
+    u.innerHTML = `<span class="a2-quote"></span>${MP.t('a2.ask.' + kind)}`; u.querySelector('.a2-quote').textContent = selText;
+    log.appendChild(u);
+    const a = agentMsg(MP.tool('writing-in-style', MP.t('a2.ask.' + kind).toLowerCase(), 'running'));
+    log.appendChild(a); log.scrollTop = log.scrollHeight;
+    setTimeout(() => {
+      const id = 'sel-' + Date.now();
+      a.querySelector('.mp-msg-body').innerHTML = `<div class="mp-msg-who">${T('chat.copywriter')}</div>${MP.tool('writing-in-style', MP.t('a2.ask.' + kind).toLowerCase(), 'done')}<p>${MP.t('a2.reply.sel')}</p>
+        <div class="mp-proposal"><div class="mp-proposal-row"><span class="mp-meta">${T('chat.before')}</span><br><del></del></div>
+        <div class="mp-proposal-row"><span class="mp-meta">${T('chat.after')}</span><br><ins>${SEL_ANSWERS[kind]}</ins></div>
+        <div class="mp-proposal-actions"><button class="mp-btn sm mp-raised" data-apply="${id}" data-text="${SEL_ANSWERS[kind]}">${MP.icons('check')}${T('chat.apply')}</button><button class="mp-btn sm ghost" data-reject>${T('chat.reject')}</button></div></div>`;
+      a.querySelector('del').textContent = selText;
+      log.scrollTop = log.scrollHeight; updateBadge();
+    }, 900);
+  }
+  document.addEventListener('click', (e) => {
+    const ask = e.target.closest('[data-a2ask]');
+    if (ask) { askSelection(ask.dataset.a2ask); return; }
+    const rej = e.target.closest('.mp-proposal-actions .mp-btn.ghost');
+    if (rej) { rej.closest('.mp-proposal-actions').innerHTML = `<span class="mp-pill mp-pill-muted">${T('a2.rejected')}</span>`; updateBadge(); return; }
+    const sync = e.target.closest('[data-a2-sync]');
+    if (sync) { syncRu(sync.dataset.a2Sync === '1' && !sync.closest('.mp-twin') ? stale.indexOf(true) : +sync.dataset.a2Sync); return; }
+    if (e.target.closest('#a2-ready')) { ready = !ready; paintHead(); return; }
+  });
+  // Apply: the common runtime marks the card done and calls onApply; selection proposals replace the highlight.
+  const baseApply = MP.onApply;
+  MP.onApply = (id) => {
+    if (String(id).startsWith('sel-')) {
+      const hl = document.querySelector('#a2-tg-doc .mp-hl');
+      if (hl && SEL_LAST) { hl.className = 'mp-fresh'; hl.textContent = SEL_LAST; }
+      MP.refreshCounters(); $('a2-sel').hidden = true;
+    } else baseApply(id);
+    updateBadge();
+  };
+  let SEL_LAST = '';
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-apply^="sel-"]'); if (b) SEL_LAST = b.dataset.text; }, true);
+
+  function syncRu(i) {
+    if (i < 0 || i == null) return;
+    stale[i] = false;
+    const twin = document.querySelector(`[data-twin="${i}-ru"]`);
+    if (twin) {
+      twin.classList.remove('is-stale');
+      const ta = twin.querySelector('textarea'); if (RU_FIX[i]) ta.value = RU_FIX[i];
+      twin.classList.add('is-fresh'); setTimeout(() => twin.classList.remove('is-fresh'), 1400);
+    }
+    const log = document.querySelector('#a2-chat-x .mp-chat-log');
+    log.appendChild(agentMsg(MP.tool('x-twins', `EN → RU · ${MP.t('x.tweet').toLowerCase()} ${i + 1}`, 'done') + `<p>${MP.t('a2.synced').replace('{n}', i + 1)}</p>`));
+    document.querySelectorAll('#a2-chat-x [data-a2-sync="1"]').forEach((b) => { b.disabled = !stale.some(Boolean); });
+    log.scrollTop = log.scrollHeight;
+    MP.refreshCounters(); renderX(); updateBadge();
+  }
+  // Editing EN makes its RU twin stale, live.
+  document.addEventListener('input', (e) => {
+    const ta = e.target.closest('#a2-tweets textarea[data-lang]');
+    if (!ta) return;
+    const i = +ta.dataset.tw;
+    if (ta.dataset.lang === 'en' && !stale[i]) { stale[i] = true; document.querySelector(`[data-twin="${i}-ru"]`).classList.add('is-stale'); document.querySelectorAll('#a2-chat-x [data-a2-sync="1"]').forEach((b) => { b.disabled = false; }); updateBadge(); }
+    if (ta.dataset.lang === 'ru' && stale[i]) { stale[i] = false; document.querySelector(`[data-twin="${i}-ru"]`).classList.remove('is-stale'); updateBadge(); }
+  });
+
+  function paintHead() {
+    const v = MP.view, p = plat(v), title = p === 'x' ? 'Тред: роадмапы против ставок' : 'Почему я перестал делать роадмапы';
+    $('a2-tile').innerHTML = MP.tile(p);
+    $('a2-platname').textContent = MP.t('plat.' + p);
+    $('a2-pill').innerHTML = MP.pill(ready ? 'ready' : p === 'x' ? 'draft' : 'writing');
+    $('a2-crumb-plat').innerHTML = `${MP.tile(p, 'sm')}<span class="a2-crumb-plat">${MP.t('plat.' + p)}</span>`;
+    $('a2-crumb-plat').dataset.a2filter = p;
+    if (document.activeElement !== $('a2-title')) $('a2-title').textContent = title;
+    $('a2-crumb-title').textContent = title;
+    $('a2-rules').innerHTML = `<span class="mp-rule">${MP.icons(p)}<span data-i18n="rules.${p}">${MP.t('rules.' + p)}</span></span>`;
+    $('a2-ready').disabled = ready;
+    $('a2-ready').querySelector('[data-i18n]').dataset.i18n = ready ? 'a2.marked' : 'post.mark_ready';
+  }
+  document.addEventListener('click', (e) => { const c = e.target.closest('[data-a2filter]'); if (c) filter = c.dataset.a2filter; }, true);
+
+  /* Draggable divider between post and chat (pointer + keyboard). */
+  (function divider() {
+    const d = $('a2-divider'), split = $('a2-split');
+    const clamp = (w) => Math.round(Math.max(320, Math.min(w, 640, split.clientWidth - 9 - 480)));
+    const set = (w) => { w = clamp(w); split.style.setProperty('--a2-chat-w', w + 'px'); d.setAttribute('aria-valuenow', String(w)); requestAnimationFrame(placeSel); };
+    d.addEventListener('pointerdown', (e) => { d.setPointerCapture(e.pointerId); d.classList.add('is-drag'); });
+    d.addEventListener('pointermove', (e) => { if (d.classList.contains('is-drag')) set(split.getBoundingClientRect().right - e.clientX - 4); });
+    d.addEventListener('pointerup', () => d.classList.remove('is-drag'));
+    d.addEventListener('dblclick', () => { split.style.removeProperty('--a2-chat-w'); d.setAttribute('aria-valuenow', '400'); });
+    d.addEventListener('keydown', (e) => {
+      const cur = $('a2-chat-x').closest('.a2-chat').offsetWidth;
+      if (e.key === 'ArrowLeft') { set(cur + 16); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { set(cur - 16); e.preventDefault(); }
+    });
+  })();
+
+  /* State hooks */
+  let widthBeforeNarrow = null;
+  MP.hooks.push((view) => {
+    renderLists();
+    const p = view === 'empty' ? null : view === 'create' ? { ini: '?', cls: 'alt', name: MP.t('a.new_profile'), meta: 'status.building' } : D.profiles[0];
+    $('a-sw-av').innerHTML = p ? MP.avatar(p) : `<span class="mp-avatar alt">${MP.icons('user')}</span>`;
+    $('a-sw-name').textContent = p ? p.name : MP.t('a.no_profile');
+    $('a-sw-meta').textContent = p ? MP.t(p.meta) : MP.t('a.pick_profile');
+    if (view === 'switcher') MP.openPop('a-sw');
+    // Profile level: which tab a narrow pane opens on.
+    const lay = document.querySelector('.a-layout'); lay.dataset.apane = view === 'switcher' ? 'rail' : 'centre';
+    document.querySelectorAll('.a-tabs [data-val]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === lay.dataset.apane)));
+    const c = document.querySelector('.a-centre'); if (view === 'home' || view === 'switcher') c.dataset.ctab = c.dataset.ctab || 'overview';
+    document.querySelectorAll('[data-seg="ctab"] [data-val]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === c.dataset.ctab)));
+    if (!POST_VIEWS.includes(view)) return;
+    paintHead();
+    setMode(view === 'tgprev' ? 'preview' : 'editor');
+    setPane(view === 'narrow' ? 'chat' : 'post');
+    updateBadge();
+  });
+  // State 8 shows the narrow pane on the Chat tab; leaving it restores the previous width.
+  MP.hooks.push((view) => {
+    if (MP.checking) return;
+    const cur = document.querySelector('.bb-pane').dataset.w;
+    if (view === 'narrow' && cur !== '420') { widthBeforeNarrow = cur; document.querySelector('#proto-w [data-w="420"]')?.click(); }
+    else if (view !== 'narrow' && widthBeforeNarrow && cur === '420') { document.querySelector(`#proto-w [data-w="${widthBeforeNarrow}"]`)?.click(); widthBeforeNarrow = null; }
+  });
+  MP.hooks.push(() => requestAnimationFrame(placeSel));
+  new ResizeObserver(() => requestAnimationFrame(placeSel)).observe(document.querySelector('.mp-app'));
+
+  /* Extra self-check for A2: both columns readable, or tabs shown; the selection toolbar inside the card. */
+  MP.checks = [(v, out) => {
+    if (!POST_VIEWS.includes(v)) return;
+    const post = document.querySelector('.a2-post'), chat = document.querySelector('.a2-chat'), tabs = document.querySelector('.a2-tabs');
+    const both = post.offsetParent && chat.offsetParent;
+    if (both && post.clientWidth < 480) out.push(`${v}: post column ${post.clientWidth}px < 480`);
+    if (both && chat.clientWidth < 320) out.push(`${v}: chat column ${chat.clientWidth}px < 320`);
+    if (!both && !tabs.offsetParent) out.push(`${v}: one column but no Post | Chat tabs`);
+    const sel = $('a2-sel'), card = sel.closest('.a2-edcard');
+    if (sel.offsetParent && !sel.hidden) { const r = sel.getBoundingClientRect(), c = card.getBoundingClientRect(); if (r.right > c.right + 1 || r.left < c.left - 1) out.push(`${v}: selection toolbar ${Math.round(r.left)}–${Math.round(r.right)} outside card ${Math.round(c.left)}–${Math.round(c.right)}`); }
+    const head = document.querySelector('.a2-bar'); if (head.scrollWidth > head.clientWidth + 1) out.push(`${v}: crumb bar overflows ${head.scrollWidth} > ${head.clientWidth}`);
+    const foot = document.querySelector('.a2-post-foot'); if (foot.offsetParent && foot.scrollWidth > foot.clientWidth + 1) out.push(`${v}: post footer overflows ${foot.scrollWidth} > ${foot.clientWidth}`);
+    const meta = document.querySelector('.a2-meta-row'); if (meta.offsetParent && meta.getBoundingClientRect().height > 70) out.push(`${v}: post meta row wraps to 3 lines`);
+  }];
+
+  renderOnce();
+  MP.init({ name: 'A2 · Студия: пост + чат', start: 'tg', views: ['empty', 'switcher', 'create', 'home', 'tg', 'x', 'tgprev', 'narrow'] });
+})();
+</script>
+</body>
+</html>
