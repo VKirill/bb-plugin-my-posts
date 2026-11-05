@@ -185,6 +185,7 @@ export function rulesLines(styleMd: string): string[] {
   for (let i = start; i < lines.length; i++) {
     const line = lines[i]!;
     if (/^#{1,2}\s/u.test(line)) break;
+    if (/^#{3,}\s/u.test(line)) continue;
     const trimmed = line.trim();
     if (trimmed === "") continue;
     const stripped = trimmed.replace(LIST_MARKER, "");
