@@ -50,9 +50,7 @@ export function mpSessionPolicy(kind: SessionKind): MpSessionPolicy {
     skills: {
       mode: "allow",
       names:
-        kind === "profile"
-          ? ["my-posts:style-portrait"]
-          : ["my-posts:writing-in-style", "my-posts:style-portrait"],
+        kind === "profile" ? ["style-portrait"] : ["writing-in-style", "style-portrait"],
     },
     mcpServers: { mode: "allow", names: ["bb-bridge"] },
     nativePlugins: { mode: "allow", names: [] },
