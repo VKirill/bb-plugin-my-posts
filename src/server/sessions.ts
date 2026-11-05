@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Post, Profile } from "../shared/model";
 import { platformRules } from "../shared/platforms";
 import type { SessionStarter } from "./rpc";
+import { sessionPolicyField } from "./session-policy";
 import type { Store } from "./store";
 import { POST_TOOLS, PROFILE_TOOLS } from "./tools";
 
@@ -118,6 +119,13 @@ async function spawnArgs(
   if (installed) {
     args.providerId = settings.providerId;
     args.model = settings.model;
+    const policyField = sessionPolicyField(bb.agents, settings.providerId, pluginMetadata.kind);
+    if (Object.keys(policyField).length > 0) {
+      Object.assign(args as unknown as Record<string, unknown>, policyField);
+      bb.log.info?.("MyPosts session spawn: narrowed BB context policy applied.");
+    } else {
+      bb.log.info?.("MyPosts session spawn: using BB default context (no session policy capability).");
+    }
   } else {
     bb.log.warn(`Provider ${settings.providerId} is not installed; spawning the MyPosts session with BB defaults.`);
   }
