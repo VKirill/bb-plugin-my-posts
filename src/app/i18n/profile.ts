@@ -43,6 +43,7 @@ const en = {
   hintX: "280 per tweet · every tweet in EN and RU · thread up to 25",
   hintDzen: "article · title, cover, H2 headings",
   hintVk: "post with attachments · photo, poll",
+  agentModel: "Agent model",
 };
 
 const ru: Record<keyof typeof en, string> = {
@@ -90,6 +91,7 @@ const ru: Record<keyof typeof en, string> = {
   hintX: "280 на твит · каждый твит на EN и RU · тред до 25",
   hintDzen: "статья · заголовок, обложка, подзаголовки H2",
   hintVk: "пост с вложениями · фото, опрос",
+  agentModel: "Модель агентов",
 };
 
 export const profile = { en, ru };
