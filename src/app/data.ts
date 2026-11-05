@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
+import {
+  useRealtime,
+  useRealtimeConnectionState,
+  useRpc,
+  type PluginRealtimeConnectionState,
+} from "@get-bb/plugin-sdk/app";
 import type { RpcContract } from "../shared/contract";
 import { MP_CHANGED } from "../shared/events";
 import type { Platform } from "../shared/model";
+
+export function isReconnect(
+  prev: PluginRealtimeConnectionState | null,
+  next: PluginRealtimeConnectionState,
+): boolean {
+  return prev === "reconnecting" && next === "connected";
+}
 
 export function useMpRpc() {
   return useRpc<RpcContract>();
@@ -30,6 +42,8 @@ export function useQuery<T>(
   const loadRef = useRef(load);
   loadRef.current = load;
   const generation = useRef(0);
+  const conn = useRealtimeConnectionState();
+  const prevConn = useRef<PluginRealtimeConnectionState | null>(null);
 
   const refetch = useCallback(() => {
     const current = ++generation.current;
@@ -53,6 +67,11 @@ export function useQuery<T>(
     setData(null);
     refetch();
   }, [key, refetch]);
+
+  useEffect(() => {
+    if (isReconnect(prevConn.current, conn)) refetch();
+    prevConn.current = conn;
+  }, [conn, refetch]);
 
   useRealtime(MP_CHANGED, (payload) => {
     if (match === null) {
