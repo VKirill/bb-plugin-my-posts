@@ -1,14 +1,468 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { t } from "../i18n";
+import { ThreadChat } from "@get-bb/plugin-sdk/app";
+import { useEffect, useRef, useState } from "react";
+import type { Platform, Post, PostStatus, Tweet } from "../../shared/model";
+import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
+import { t, useLocale } from "../i18n";
+import { useGo } from "../routes";
+import { PostScreenContext } from "./context";
+import { Editor } from "./Editor";
+import {
+  chatBadge,
+  clampChatWidth,
+  DEFAULT_CHAT,
+  defaultChatWidth,
+  DIVIDER_STEP,
+  readStoredChatWidth,
+  selectionPrompt,
+  splitMode,
+  toolbarPosition,
+  writeStoredChatWidth,
+  type SelectionAction,
+  type SplitMode,
+} from "./layout";
+import { Preview, initials } from "./Preview";
+import { SelectionToolbar } from "./SelectionToolbar";
+import { XTwins } from "./XTwins";
+import "./post.css";
+
+const STATUS_PILL: Record<PostStatus, string> = {
+  draft: "mp-pill-muted",
+  writing: "mp-pill-info",
+  ready: "mp-pill-success",
+  published: "mp-pill-neutral",
+};
+
+const PLATFORM_KEY: Record<Platform, "platformTelegram" | "platformX" | "platformDzen" | "platformVk"> = {
+  telegram: "platformTelegram",
+  x: "platformX",
+  dzen: "platformDzen",
+  vk: "platformVk",
+};
+
+const STATUS_KEY: Record<PostStatus, "statusDraft" | "statusWriting" | "statusReady" | "statusPublished"> = {
+  draft: "statusDraft",
+  writing: "statusWriting",
+  ready: "statusReady",
+  published: "statusPublished",
+};
+
+const RULES_KEY: Record<Platform, "rulesTelegram" | "rulesX" | "rulesDzen" | "rulesVk"> = {
+  telegram: "rulesTelegram",
+  x: "rulesX",
+  dzen: "rulesDzen",
+  vk: "rulesVk",
+};
+
+const PLATFORM_MARK: Record<Platform, string> = {
+  telegram: "✈",
+  x: "X",
+  dzen: "✦",
+  vk: "VK",
+};
 
 export function PostPage({ postId }: { postId: string }) {
+  useLocale();
+  const query = usePost(postId);
+  if (query.loading && query.data === null) {
+    return <p className="mp-post-rules">{t("loading")}</p>;
+  }
+  if (query.error !== null && query.data === null) {
+    return (
+      <div>
+        <p className="mp-post-error">{query.error}</p>
+        <button type="button" className="mp-btn" onClick={query.refetch}>
+          {t("retry")}
+        </button>
+      </div>
+    );
+  }
+  if (query.data === null) return <p className="mp-post-rules">{t("loading")}</p>;
   return (
-    <Card className="mp-card">
-      <CardHeader className="p-0">
-        <CardTitle>{t("postStubTitle")}</CardTitle>
-        <CardDescription>{t("postStubHint")}</CardDescription>
-        <p className="text-sm text-muted-foreground">{postId}</p>
-      </CardHeader>
-    </Card>
+    <PostScreenContext.Provider value={{ post: query.data.post, proposals: query.data.proposals, refetch: query.refetch }}>
+      <PostWorkspace post={query.data.post} proposals={query.data.proposals} />
+    </PostScreenContext.Provider>
   );
+}
+
+function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../../shared/model").Proposal[] }) {
+  const rpc = useMpRpc();
+  const go = useGo();
+  const profile = useProfile(post.profileId);
+  const posts = usePosts(post.profileId);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const pending = useRef<Partial<{ title: string; body: string; tweets: Tweet[] }>>({});
+  const timer = useRef<number | null>(null);
+  const drag = useRef<{ startX: number; startW: number } | null>(null);
+
+  const [paneWidth, setPaneWidth] = useState(1200);
+  const [chatW, setChatW] = useState(DEFAULT_CHAT);
+  const [mode, setMode] = useState<"editor" | "preview">("editor");
+  const [pane, setPane] = useState<"post" | "chat">("post");
+  const [title, setTitle] = useState(post.title);
+  const [body, setBody] = useState(post.body);
+  const [tweets, setTweets] = useState(post.tweets);
+  const [keepInSync, setKeepInSync] = useState(false);
+  const [previewLang, setPreviewLang] = useState<"en" | "ru">("en");
+  const [postsOpen, setPostsOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [focusChat, setFocusChat] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [sel, setSel] = useState<{ text: string; left: number; top: number } | null>(null);
+
+  const split: SplitMode = splitMode(paneWidth);
+  const profileName = profile.data?.name ?? "";
+  const badge = chatBadge({ tweets }, proposals);
+
+  useEffect(() => {
+    setTitle(post.title);
+    setBody(post.body);
+    setTweets(post.tweets);
+  }, [post.id, post.updatedAt]);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (node === null) return;
+    const stored = readStoredChatWidth();
+    const width = node.clientWidth;
+    setPaneWidth(width);
+    setChatW(clampChatWidth(width, stored ?? defaultChatWidth(width)));
+    const observer = new ResizeObserver((entries) => {
+      const next = entries[0]?.contentRect.width;
+      if (next === undefined) return;
+      setPaneWidth(next);
+      setChatW((current) => clampChatWidth(next, current));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  function schedule(patch: Partial<{ title: string; body: string; tweets: Tweet[] }>): void {
+    pending.current = { ...pending.current, ...patch };
+    if (timer.current !== null) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      void flush();
+    }, 600);
+  }
+
+  async function flush(): Promise<void> {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const patch = pending.current;
+    pending.current = {};
+    if (patch.title === undefined && patch.body === undefined && patch.tweets === undefined) return;
+    try {
+      await rpc.call("post_update", { id: post.id, ...patch });
+      setSaveError(null);
+    } catch (cause) {
+      setSaveError(errorText(cause));
+    }
+  }
+
+  function setChatWidth(next: number): void {
+    const clamped = clampChatWidth(paneWidth, next);
+    setChatW(clamped);
+    writeStoredChatWidth(clamped);
+  }
+
+  async function sendChat(text: string): Promise<void> {
+    if (post.threadId === null) return;
+    await rpc.call("chat_send", { threadId: post.threadId, text });
+  }
+
+  function onSelection(text: string, rect: DOMRect | null, card: DOMRect | null): void {
+    if (text === "" || rect === null || card === null) {
+      setSel(null);
+      return;
+    }
+    const box = (r: DOMRect) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
+    const pos = toolbarPosition(box(rect), box(card), { width: 320, height: 36 });
+    setSel({ text, left: pos.left, top: pos.top });
+  }
+
+  async function onAction(action: SelectionAction): Promise<void> {
+    if (sel === null) return;
+    await sendChat(selectionPrompt(action, sel.text, post.platform));
+    setSel(null);
+    if (split === "tabs") setPane("chat");
+  }
+
+  async function onAsk(): Promise<void> {
+    if (sel === null) return;
+    try {
+      await navigator.clipboard.writeText(`«${sel.text}»`);
+      setToast(t("quoteCopied"));
+      window.setTimeout(() => setToast(null), 2400);
+    } catch {
+      setToast(t("quoteCopied"));
+    }
+    setSel(null);
+    setFocusChat((n) => n + 1);
+    if (split === "tabs") setPane("chat");
+  }
+
+  async function onUpdateRu(index: number): Promise<void> {
+    const tweet = tweets[index];
+    if (tweet === undefined) return;
+    await sendChat(t("updateRuPrompt", { n: index + 1, selection: tweet.en }));
+    if (split === "tabs") setPane("chat");
+  }
+
+  function onTweets(next: Tweet[], index: number, lang: "en" | "ru"): void {
+    setTweets(next);
+    schedule({ tweets: next });
+    if (keepInSync && lang === "en") void onUpdateRu(index);
+  }
+
+  async function copyText(): Promise<void> {
+    const text =
+      post.platform === "x" ? tweets.map((tweet) => tweet[previewLang]).join("\n\n") : body;
+    await navigator.clipboard.writeText(text);
+  }
+
+  async function markReady(): Promise<void> {
+    await flush();
+    try {
+      await rpc.call("post_update", { id: post.id, status: "ready" });
+      setSaveError(null);
+    } catch (cause) {
+      setSaveError(errorText(cause));
+    }
+  }
+
+  const timeLabel = formatTime(post.updatedAt);
+  const crumbTitleVisible = paneWidth >= 1280;
+
+  return (
+    <div
+      ref={rootRef}
+      className="mp-post-page"
+      data-split={split}
+      data-pane={pane}
+      style={{ ["--mp-chat-w" as string]: `${chatW}px` }}
+    >
+      <header className="mp-post-bar">
+        <button
+          type="button"
+          className="mp-btn sm icon ghost"
+          aria-label={t("backToProfile")}
+          onClick={() => go({ kind: "profile", profileId: post.profileId })}
+        >
+          ←
+        </button>
+        <nav className="mp-post-crumb" aria-label={t("crumb")}>
+          <button type="button" className="mp-post-crumb-btn" onClick={() => go({ kind: "profile", profileId: post.profileId })}>
+            <span className="mp-post-avatar">{initials(profileName)}</span>
+            <span className="mp-post-crumb-name">{profileName}</span>
+          </button>
+          <span aria-hidden>›</span>
+          <button
+            type="button"
+            className="mp-post-crumb-btn"
+            onClick={() => go({ kind: "profile", profileId: post.profileId, platform: post.platform })}
+          >
+            <span className="mp-post-tile">{PLATFORM_MARK[post.platform]}</span>
+            <span className="mp-post-crumb-plat">{t(PLATFORM_KEY[post.platform])}</span>
+          </button>
+          {crumbTitleVisible ? (
+            <>
+              <span className="mp-post-crumb-title-sep" aria-hidden>
+                ›
+              </span>
+              <span className="mp-post-crumb-title mp-truncate">{title}</span>
+            </>
+          ) : null}
+        </nav>
+        <span className="mp-seg mp-post-tabs" role="tablist">
+          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-selected={pane === "post"} onClick={() => setPane("post")}>
+            {t("tabPost")}
+          </button>
+          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-selected={pane === "chat"} onClick={() => setPane("chat")}>
+            {t("tabChat")}
+            <span className="mp-post-badge" data-empty={badge === 0 ? "true" : "false"}>
+              {badge === 0 ? "" : badge}
+            </span>
+          </button>
+        </span>
+        <button
+          type="button"
+          className="mp-btn sm"
+          aria-haspopup="menu"
+          aria-expanded={postsOpen}
+          onClick={() => setPostsOpen((open) => !open)}
+        >
+          ≡ <span className="mp-post-posts-lbl">{t("posts")}</span> ▾
+        </button>
+        <div className="mp-post-posts-pop" hidden={!postsOpen} role="menu">
+          <div className="mp-post-menu-label">
+            {t("posts")} · {profileName}
+          </div>
+          {(posts.data?.posts ?? []).map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              className="mp-post-nav-item"
+              role="menuitem"
+              aria-current={row.id === post.id ? "page" : undefined}
+              onClick={() => {
+                setPostsOpen(false);
+                go({ kind: "post", postId: row.id });
+              }}
+            >
+              <span className="mp-post-tile">{PLATFORM_MARK[row.platform]}</span>
+              <span className="mp-post-grow">{row.title}</span>
+              <span className={`mp-pill ${STATUS_PILL[row.status]}`}>{t(STATUS_KEY[row.status])}</span>
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="mp-post-split">
+        <section className="mp-post-col" aria-label={t("tabPost")}>
+          <div className="mp-post-head">
+            <div className="mp-post-meta">
+              <span className="mp-post-tile" style={{ width: 28, height: 28 }}>
+                {PLATFORM_MARK[post.platform]}
+              </span>
+              <span className="mp-post-platname">{t(PLATFORM_KEY[post.platform])}</span>
+              <span className={`mp-pill ${STATUS_PILL[post.status]}`}>{t(STATUS_KEY[post.status])}</span>
+              <span className="mp-post-grow" />
+              <span className="mp-seg" role="tablist">
+                <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={mode === "editor"} onClick={() => setMode("editor")}>
+                  {t("editor")}
+                </button>
+                <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>
+                  {t("preview")}
+                </button>
+              </span>
+            </div>
+            <textarea
+              className="mp-post-title"
+              rows={1}
+              value={title}
+              aria-label={t("editor")}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                schedule({ title: event.target.value });
+              }}
+            />
+          </div>
+          <div className="mp-post-body">
+            <div className="mp-post-page-inner">
+              <div className="mp-post-rules">{t(RULES_KEY[post.platform])}</div>
+              {mode === "editor" && post.platform !== "x" ? (
+                <Editor platform={post.platform} value={body} onChange={(next) => { setBody(next); schedule({ body: next }); }} onSelection={onSelection} cardRef={cardRef} />
+              ) : null}
+              {mode === "editor" && post.platform === "x" ? (
+                <XTwins
+                  tweets={tweets}
+                  keepInSync={keepInSync}
+                  onKeepInSync={setKeepInSync}
+                  onChange={onTweets}
+                  onUpdateRu={(index) => void onUpdateRu(index)}
+                  onSelection={onSelection}
+                />
+              ) : null}
+              {mode === "preview" ? (
+                <Preview
+                  platform={post.platform}
+                  title={title}
+                  body={body}
+                  tweets={tweets}
+                  profileName={profileName}
+                  previewLang={previewLang}
+                  onPreviewLang={setPreviewLang}
+                  timeLabel={timeLabel}
+                />
+              ) : null}
+            </div>
+          </div>
+          <div className="mp-post-foot">
+            <span className="mp-post-saved">{t("saved", { time: timeLabel })}</span>
+            <span className="mp-post-grow" />
+            {saveError !== null ? <span className="mp-post-error">{saveError}</span> : null}
+            <button type="button" className="mp-btn mp-post-copy" aria-label={t("copy")} onClick={() => void copyText()}>
+              <span className="mp-post-copy-lbl">{t("copy")}</span>
+              <span className="mp-post-copy-ico" aria-hidden>
+                ⧉
+              </span>
+            </button>
+            <button type="button" className="mp-btn mp-post-accent" onClick={() => void markReady()}>
+              {t("markReady")}
+            </button>
+          </div>
+        </section>
+
+        <div
+          className="mp-post-divider"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t("resizeChat")}
+          aria-valuemin={320}
+          aria-valuemax={640}
+          aria-valuenow={Math.round(chatW)}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            drag.current = { startX: event.clientX, startW: chatW };
+            event.currentTarget.classList.add("is-drag");
+          }}
+          onPointerMove={(event) => {
+            if (drag.current === null) return;
+            const delta = drag.current.startX - event.clientX;
+            setChatWidth(drag.current.startW + delta);
+          }}
+          onPointerUp={(event) => {
+            drag.current = null;
+            event.currentTarget.classList.remove("is-drag");
+          }}
+          onDoubleClick={() => setChatWidth(DEFAULT_CHAT)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              setChatWidth(chatW + DIVIDER_STEP);
+            }
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              setChatWidth(chatW - DIVIDER_STEP);
+            }
+          }}
+        />
+
+        <aside className="mp-post-chat" aria-label={t("copywriter")}>
+          <div className="mp-post-chat-main">
+            {post.threadId === null ? (
+              <p className="mp-post-rules" style={{ padding: 16 }}>
+                {t("noThread")}
+              </p>
+            ) : (
+              <ThreadChat threadId={post.threadId} variant="compact" layout="contained" className="h-full" focusRequest={focusChat} />
+            )}
+          </div>
+          <div className="mp-post-chips">
+            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipShorterPrompt"))}>
+              {t("chipShorter")}
+            </button>
+            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipHooksPrompt"))}>
+              {t("chipHooks")}
+            </button>
+            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipTabooPrompt"))}>
+              {t("chipTaboo")}
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <SelectionToolbar hidden={sel === null} left={sel?.left ?? 0} top={sel?.top ?? 0} onAction={(action) => void onAction(action)} onAsk={() => void onAsk()} />
+      {toast !== null ? <div className="mp-post-toast">{toast}</div> : null}
+    </div>
+  );
+}
+
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
