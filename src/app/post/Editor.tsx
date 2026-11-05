@@ -1,7 +1,12 @@
-import { useRef, type RefObject } from "react";
+import { useLayoutEffect, useRef, type RefObject } from "react";
 import type { Platform } from "../../shared/model";
 import { countChars, platformDef } from "../../shared/platforms";
 import { t } from "../i18n";
+
+export function fitTextarea(el: HTMLTextAreaElement): void {
+  el.style.height = "0px";
+  el.style.height = `${el.scrollHeight}px`;
+}
 
 export function Editor({
   platform,
@@ -21,6 +26,10 @@ export function Editor({
   const used = countChars(platform, value);
   const limit = def.limit;
   const over = limit !== null && used > limit;
+
+  useLayoutEffect(() => {
+    if (areaRef.current !== null) fitTextarea(areaRef.current);
+  }, [value]);
 
   function emitSelection(): void {
     const area = areaRef.current;
@@ -54,8 +63,12 @@ export function Editor({
         <textarea
           ref={areaRef}
           className="mp-post-textarea"
+          rows={1}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            fitTextarea(event.target);
+          }}
           onSelect={emitSelection}
           onKeyUp={emitSelection}
           onMouseUp={emitSelection}

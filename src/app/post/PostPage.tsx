@@ -3,9 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Platform, Post, PostStatus, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
 import { t, useLocale } from "../i18n";
+import { PlatformIcon } from "../profile/icons";
 import { useGo } from "../routes";
 import { PostScreenContext } from "./context";
 import { Editor } from "./Editor";
+import { postHeader } from "./header";
 import {
   chatBadge,
   clampChatWidth,
@@ -32,13 +34,6 @@ const STATUS_PILL: Record<PostStatus, string> = {
   published: "mp-pill-neutral",
 };
 
-const PLATFORM_KEY: Record<Platform, "platformTelegram" | "platformX" | "platformDzen" | "platformVk"> = {
-  telegram: "platformTelegram",
-  x: "platformX",
-  dzen: "platformDzen",
-  vk: "platformVk",
-};
-
 const STATUS_KEY: Record<PostStatus, "statusDraft" | "statusWriting" | "statusReady" | "statusPublished"> = {
   draft: "statusDraft",
   writing: "statusWriting",
@@ -51,13 +46,6 @@ const RULES_KEY: Record<Platform, "rulesTelegram" | "rulesX" | "rulesDzen" | "ru
   x: "rulesX",
   dzen: "rulesDzen",
   vk: "rulesVk",
-};
-
-const PLATFORM_MARK: Record<Platform, string> = {
-  telegram: "✈",
-  x: "X",
-  dzen: "✦",
-  vk: "VK",
 };
 
 export function PostPage({ postId }: { postId: string }) {
@@ -234,6 +222,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
 
   const timeLabel = formatTime(post.updatedAt);
   const crumbTitleVisible = paneWidth >= 1280;
+  const header = postHeader(post.platform);
 
   return (
     <div
@@ -263,8 +252,10 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
             className="mp-post-crumb-btn"
             onClick={() => go({ kind: "profile", profileId: post.profileId, platform: post.platform })}
           >
-            <span className="mp-post-tile">{PLATFORM_MARK[post.platform]}</span>
-            <span className="mp-post-crumb-plat">{t(PLATFORM_KEY[post.platform])}</span>
+            <span className="mp-post-tile">
+              <PlatformIcon platform={post.platform} />
+            </span>
+            {header.showLabel ? <span className="mp-post-crumb-plat">{header.label}</span> : null}
           </button>
           {crumbTitleVisible ? (
             <>
@@ -311,7 +302,9 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
                 go({ kind: "post", postId: row.id });
               }}
             >
-              <span className="mp-post-tile">{PLATFORM_MARK[row.platform]}</span>
+              <span className="mp-post-tile">
+                <PlatformIcon platform={row.platform} />
+              </span>
               <span className="mp-post-grow">{row.title}</span>
               <span className={`mp-pill ${STATUS_PILL[row.status]}`}>{t(STATUS_KEY[row.status])}</span>
             </button>
@@ -324,9 +317,9 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
           <div className="mp-post-head">
             <div className="mp-post-meta">
               <span className="mp-post-tile" style={{ width: 28, height: 28 }}>
-                {PLATFORM_MARK[post.platform]}
+                <PlatformIcon platform={post.platform} />
               </span>
-              <span className="mp-post-platname">{t(PLATFORM_KEY[post.platform])}</span>
+              {header.showLabel ? <span className="mp-post-platname">{header.label}</span> : null}
               <span className={`mp-pill ${STATUS_PILL[post.status]}`}>{t(STATUS_KEY[post.status])}</span>
               <span className="mp-post-grow" />
               <span className="mp-seg" role="tablist">
@@ -351,7 +344,12 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
           </div>
           <div className="mp-post-body">
             <div className="mp-post-page-inner">
-              <div className="mp-post-rules">{t(RULES_KEY[post.platform])}</div>
+              <div className="mp-post-rules">
+                <span className="mp-post-rule">
+                  <PlatformIcon platform={post.platform} />
+                  <span>{t(RULES_KEY[post.platform])}</span>
+                </span>
+              </div>
               {mode === "editor" && post.platform !== "x" ? (
                 <Editor platform={post.platform} value={body} onChange={(next) => { setBody(next); schedule({ body: next }); }} onSelection={onSelection} cardRef={cardRef} />
               ) : null}
@@ -432,25 +430,38 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
         />
 
         <aside className="mp-post-chat" aria-label={t("copywriter")}>
-          <div className="mp-post-chat-main">
-            {post.threadId === null ? (
-              <p className="mp-post-rules" style={{ padding: 16 }}>
-                {t("noThread")}
-              </p>
-            ) : (
-              <ThreadChat threadId={post.threadId} variant="compact" layout="contained" className="h-full" focusRequest={focusChat} />
-            )}
+          <div className="mp-post-chat-head">
+            <span className="mp-post-avatar mp-post-chat-ai">AI</span>
+            <span className="mp-post-chat-title">{t("copywriterTitle")}</span>
+            {profileName !== "" ? <span className="mp-post-chat-profile"> · {profileName}</span> : null}
           </div>
-          <div className="mp-post-chips">
-            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipShorterPrompt"))}>
-              {t("chipShorter")}
-            </button>
-            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipHooksPrompt"))}>
-              {t("chipHooks")}
-            </button>
-            <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipTabooPrompt"))}>
-              {t("chipTaboo")}
-            </button>
+          <div className="mp-post-chat-stage">
+            <div className="mp-post-chips">
+              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipShorterPrompt"))}>
+                {t("chipShorter")}
+              </button>
+              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipHooksPrompt"))}>
+                {t("chipHooks")}
+              </button>
+              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipTabooPrompt"))}>
+                {t("chipTaboo")}
+              </button>
+            </div>
+            <div className="mp-post-chat-main">
+              {post.threadId === null ? (
+                <p className="mp-post-rules" style={{ padding: 16 }}>
+                  {t("noThread")}
+                </p>
+              ) : (
+                <ThreadChat
+                  threadId={post.threadId}
+                  variant="compact"
+                  layout="contained"
+                  className="h-full"
+                  focusRequest={focusChat}
+                />
+              )}
+            </div>
           </div>
         </aside>
       </div>

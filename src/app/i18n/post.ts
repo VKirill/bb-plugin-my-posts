@@ -50,6 +50,7 @@ const en = {
   rulesVk: "post with attachments",
   readingMinutes: "{n} min read",
   copywriter: "Copywriter",
+  copywriterTitle: "Copywriter",
   langEn: "EN",
   langRu: "RU",
 };
@@ -106,6 +107,7 @@ const ru: Record<keyof typeof en, string> = {
   rulesVk: "пост с вложениями",
   readingMinutes: "{n} мин чтения",
   copywriter: "Копирайтер",
+  copywriterTitle: "Копирайтер",
   langEn: "EN",
   langRu: "RU",
 };
