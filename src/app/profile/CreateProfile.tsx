@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
-import { t } from "../i18n";
+import { t, useLocale } from "../i18n";
 import { useMpRpc } from "../data";
 import { useGo } from "../routes";
 import type { Profile } from "../../shared/model";
@@ -16,6 +16,7 @@ export function CreateProfile({
 }) {
   const rpc = useMpRpc();
   const go = useGo();
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [source, setSource] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export function CreateProfile({
     try {
       const next = await rpc.call("profile_create", {
         name: trimmed,
+        locale,
         ...(source.trim() === "" ? {} : { source: source.trim() }),
       });
       onCreated(next);

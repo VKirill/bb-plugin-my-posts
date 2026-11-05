@@ -1,11 +1,11 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
-import { rpcContract } from "../shared/contract";
+import { type KickoffLocale, rpcContract } from "../shared/contract";
 import type { Post, Profile } from "../shared/model";
 import type { Store } from "./store";
 
 export interface SessionStarter {
-  startProfileSession(profile: Profile): Promise<string>;
-  startPostSession(post: Post, brief: string | null): Promise<string>;
+  startProfileSession(profile: Profile, locale?: KickoffLocale): Promise<string>;
+  startPostSession(post: Post, brief: string | null, locale?: KickoffLocale): Promise<string>;
 }
 
 export const noopSessions: SessionStarter = {
@@ -30,11 +30,12 @@ export function registerRpc(
 
     profile_get: ({ id }) => store.getProfile(id),
 
-    profile_create: async ({ name, source }) => {
+    profile_create: async ({ name, source, locale }) => {
+      const kickoffLocale: KickoffLocale = locale ?? "en";
       const created = store.createProfile({ name, source, status: "building" });
       let styleThreadId: string;
       try {
-        styleThreadId = await sessions.startProfileSession(created);
+        styleThreadId = await sessions.startProfileSession(created, kickoffLocale);
       } catch (cause) {
         try {
           store.deleteProfile(created.id);
@@ -62,7 +63,8 @@ export function registerRpc(
 
     posts_list: ({ profileId, platform }) => ({ posts: store.listPosts(profileId, platform) }),
 
-    post_create: async ({ profileId, platform, kind, brief }) => {
+    post_create: async ({ profileId, platform, kind, brief, locale }) => {
+      const kickoffLocale: KickoffLocale = locale ?? "en";
       const title = brief === undefined || brief.trim() === "" ? "Untitled" : brief.trim().slice(0, 60);
       const created = store.createPost({
         profileId,
@@ -73,7 +75,7 @@ export function registerRpc(
       });
       let threadId: string;
       try {
-        threadId = await sessions.startPostSession(created, brief ?? null);
+        threadId = await sessions.startPostSession(created, brief ?? null, kickoffLocale);
       } catch (cause) {
         try {
           store.deletePost(created.id);

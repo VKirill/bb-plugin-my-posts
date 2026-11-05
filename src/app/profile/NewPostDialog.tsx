@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { t } from "../i18n";
+import { t, useLocale } from "../i18n";
 import { useMpRpc } from "../data";
 import { useGo } from "../routes";
 import type { Platform } from "../../shared/model";
@@ -39,6 +39,7 @@ export function NewPostDialog({
 }) {
   const rpc = useMpRpc();
   const go = useGo();
+  const locale = useLocale();
   const [platform, setPlatform] = useState<Platform>("telegram");
   const [article, setArticle] = useState(false);
   const [brief, setBrief] = useState("");
@@ -57,6 +58,7 @@ export function NewPostDialog({
         profileId,
         platform,
         kind,
+        locale,
         ...(trimmed === "" ? {} : { brief: trimmed }),
       });
       onOpenChange(false);

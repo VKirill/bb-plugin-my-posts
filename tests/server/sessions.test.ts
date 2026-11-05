@@ -101,6 +101,7 @@ describe("agentConfiguration", () => {
       [
         "You are the copywriter of MyPosts.",
         `You work on post ${post.id} for profile Author One (${profile.id}).`,
+        "Use the writing-in-style skill. Load the profile with mp_profile_get, write the draft with mp_post_write, and propose every later change with mp_propose_edit.",
         platformRules("x"),
         "After the first draft, never rewrite the post silently: every change is an mp_propose_edit, and you put its ::mp-edit{id=…} line on its own line in your reply.",
         "Each tweet needs English and Russian versions as {en, ru}.",
