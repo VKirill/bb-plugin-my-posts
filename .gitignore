@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.bb/
+.agents/
+.gitnexus/
+AGENTS.md
+.DS_Store
+.env*

@@ -1,0 +1,54 @@
+{
+  "name": "bb-plugin-my-posts",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "bb": ">=0.48",
+    "bbPluginSdk": ">=0.6.104"
+  },
+  "bb": {
+    "name": "MyPosts",
+    "description": "Style profiles and posts for Telegram, Dzen, VK and X, written with a copywriter agent in the profile's voice.",
+    "branding": {
+      "icon": "./assets/icon.svg",
+      "experimental_icons": {
+        "quill": "./assets/icon.svg"
+      }
+    },
+    "server": "./server.ts",
+    "app": "./app.tsx",
+    "skills": [
+      "skills"
+    ]
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@get-bb/plugin-sdk": "0.6.104",
+    "@radix-ui/react-dialog": "^1.1.19",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "better-sqlite3": "^12.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "hono": "^4.11.9",
+    "tailwind-merge": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.7"
+  },
+  "description": "Style profiles and posts for Telegram, Dzen, VK and X, written with a copywriter agent in the profile's voice.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VKirill/bb-plugin-my-posts.git"
+  },
+  "scripts": {
+    "build": "bb plugin build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  }
+}
