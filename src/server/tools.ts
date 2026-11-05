@@ -3,7 +3,23 @@ import { z } from "zod";
 import { postStatusSchema, proposalTargetSchema, tweetSchema } from "../shared/model";
 import type { ChangedPayload } from "./rpc";
 import { StoreError, type Store } from "./store";
-import { fetchTelegramChannel } from "./telegram";
+import { fetchTelegramChannel, formatTelegramFetchPage, normaliseTelegramChannel } from "./telegram";
+
+const TELEGRAM_FETCH_CACHE_MS = 15 * 60 * 1000;
+const telegramFetchCache = new Map<
+  string,
+  { expiresAt: number; result: Awaited<ReturnType<typeof fetchTelegramChannel>> }
+>();
+
+async function cachedFetchTelegramChannel(channel: string, limit: number) {
+  const key = `${normaliseTelegramChannel(channel)}:${limit}`;
+  const now = Date.now();
+  const hit = telegramFetchCache.get(key);
+  if (hit !== undefined && hit.expiresAt > now) return hit.result;
+  const result = await fetchTelegramChannel(channel, limit);
+  telegramFetchCache.set(key, { expiresAt: now + TELEGRAM_FETCH_CACHE_MS, result });
+  return result;
+}
 
 export const PROFILE_TOOLS = ["mp_profile_get", "mp_profile_save", "mp_fetch_telegram"] as const;
 export const POST_TOOLS = ["mp_profile_get", "mp_post_get", "mp_post_write", "mp_propose_edit"] as const;
@@ -94,14 +110,12 @@ export function registerTools(bb: BbPluginApi, store: Store, changed: (payload: 
     parameters: z.object({
       channel: z.string().min(1),
       limit: z.number().int().min(1).max(500).optional(),
+      page: z.number().int().min(1).optional(),
     }),
-    async execute({ channel, limit }) {
+    async execute({ channel, limit, page }) {
       try {
-        const result = await fetchTelegramChannel(channel, limit ?? 150);
-        return [
-          `Fetched ${result.posts.length} posts (${result.skippedForwards} forwarded skipped).`,
-          result.text,
-        ].join("\n\n");
+        const result = await cachedFetchTelegramChannel(channel, limit ?? 150);
+        return formatTelegramFetchPage(result, page ?? 1);
       } catch (error) {
         return fail(error instanceof Error ? error.message : String(error));
       }
