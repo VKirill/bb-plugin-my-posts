@@ -32,7 +32,17 @@ export function registerRpc(
 
     profile_create: async ({ name, source }) => {
       const created = store.createProfile({ name, source, status: "building" });
-      const styleThreadId = await sessions.startProfileSession(created);
+      let styleThreadId: string;
+      try {
+        styleThreadId = await sessions.startProfileSession(created);
+      } catch (cause) {
+        try {
+          store.deleteProfile(created.id);
+        } catch (cleanup) {
+          bb.log.warn(`MyPosts rollback failed: ${String(cleanup)}`);
+        }
+        throw cause;
+      }
       const profile = store.updateProfile(created.id, { styleThreadId: styleThreadId === "" ? null : styleThreadId });
       changed({ profileId: profile.id });
       return profile;
@@ -61,7 +71,17 @@ export function registerRpc(
         title,
         status: "writing",
       });
-      const threadId = await sessions.startPostSession(created, brief ?? null);
+      let threadId: string;
+      try {
+        threadId = await sessions.startPostSession(created, brief ?? null);
+      } catch (cause) {
+        try {
+          store.deletePost(created.id);
+        } catch (cleanup) {
+          bb.log.warn(`MyPosts rollback failed: ${String(cleanup)}`);
+        }
+        throw cause;
+      }
       const post = store.updatePost(created.id, { threadId: threadId === "" ? null : threadId });
       changed({ profileId: post.profileId, postId: post.id });
       return post;

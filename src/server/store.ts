@@ -226,6 +226,15 @@ export class Store {
     run();
   }
 
+  deletePost(id: string): void {
+    this.getPost(id);
+    const run = this.db.transaction(() => {
+      this.db.prepare("DELETE FROM proposals WHERE post_id = ?").run(id);
+      this.db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+    });
+    run();
+  }
+
   listPosts(profileId: string, platform?: Platform): Post[] {
     this.getProfile(profileId);
     const rows =
