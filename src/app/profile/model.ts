@@ -128,6 +128,31 @@ function ruPlural(n: number, one: string, few: string, many: string): string {
   return many;
 }
 
+function formatCountWithUnit(
+  n: number,
+  locale: ProfileLocale,
+  en: { one: string; many: string },
+  ru: { one: string; few: string; many: string },
+  ruFractional: string,
+): string {
+  const formatted = formatDecimal(n, locale);
+  if (locale === "en") {
+    return `${formatted} ${n === 1 ? en.one : en.many}`;
+  }
+  if (!Number.isInteger(n)) {
+    return `${formatted} ${ruFractional}`;
+  }
+  return `${formatted} ${ruPlural(n, ru.one, ru.few, ru.many)}`;
+}
+
+function formatSentenceValue(n: number, locale: ProfileLocale): string {
+  return formatCountWithUnit(n, locale, { one: "word", many: "words" }, { one: "слово", few: "слова", many: "слов" }, "слова");
+}
+
+function formatPostLenValue(n: number, locale: ProfileLocale): string {
+  return formatCountWithUnit(n, locale, { one: "char", many: "chars" }, { one: "знак", few: "знака", many: "знаков" }, "знака");
+}
+
 function formatCorpusValue(texts: number, chars: number, locale: ProfileLocale): string {
   if (locale === "en") {
     const postsLabel = texts === 1 ? "post" : "posts";
@@ -187,14 +212,14 @@ export function metricRows(metrics: Record<string, unknown>, locale: ProfileLoca
   if (sentence !== null) {
     rows.push({
       label: dict.metricSentence,
-      value: fill(dict.metricSentenceValue, { n: formatDecimal(sentence, locale) }),
+      value: formatSentenceValue(sentence, locale),
     });
   }
   const postLen = lookupNumber(bag, POSTLEN_KEYS);
   if (postLen !== null) {
     rows.push({
       label: dict.metricPostLen,
-      value: fill(dict.metricPostLenValue, { n: formatDecimal(postLen, locale) }),
+      value: formatPostLenValue(postLen, locale),
     });
   }
   return rows;
