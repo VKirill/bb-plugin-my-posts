@@ -314,12 +314,31 @@
 }
 
 .mp-post-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mp-post-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mp-s1);
   font-size: 12px;
+  line-height: 16px;
   color: var(--muted-foreground);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+}
+
+.mp-post-rule svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .mp-post-edcard {
-  padding: var(--mp-pad-card);
+  padding: 20px;
 }
 
 .mp-post-edwrap {
@@ -327,16 +346,19 @@
 }
 
 .mp-post-textarea {
+  display: block;
   width: 100%;
-  min-height: 220px;
+  min-height: 0;
   border: 0;
   background: transparent;
   color: var(--foreground);
   font: inherit;
   font-size: 15px;
-  line-height: 1.55;
-  resize: vertical;
+  line-height: 24px;
+  resize: none;
+  overflow: hidden;
   outline: none;
+  field-sizing: content;
 }
 
 .mp-post-edtools {
@@ -473,6 +495,47 @@
   background: var(--pk-panel, var(--background));
 }
 
+.mp-post-chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--mp-s2);
+  height: 48px;
+  padding: 0 var(--mp-s3) 0 var(--mp-gap);
+  border-bottom: 1px solid var(--mp-hairline);
+  flex-shrink: 0;
+}
+
+.mp-post-chat-ai {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.mp-post-chat-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--foreground);
+}
+
+.mp-post-chat-profile {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.mp-post-chat-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .mp-post-chat-main {
   flex: 1;
   min-height: 0;
@@ -487,10 +550,17 @@
 }
 
 .mp-post-chips {
+  order: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--mp-s2);
-  padding: var(--mp-s2) var(--mp-s3) var(--mp-s3);
+  gap: 6px;
+  padding: 0 12px 8px;
+  flex-shrink: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 80px;
+  z-index: 4;
 }
 
 .mp-post-chip {

@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { emptyTweet, type Tweet } from "../../shared/model";
 import { countChars, platformDef } from "../../shared/platforms";
 import { t } from "../i18n";
+import { fitTextarea } from "./Editor";
 
 const MAX = platformDef("x").maxTweets ?? 25;
 
@@ -97,8 +98,12 @@ function Twin({
   onSelect: (area: HTMLTextAreaElement) => void;
   onUpdateRu?: () => void;
 }) {
+  const areaRef = useRef<HTMLTextAreaElement>(null);
   const used = countChars("x", value);
   const over = used > 280;
+  useLayoutEffect(() => {
+    if (areaRef.current !== null) fitTextarea(areaRef.current);
+  }, [value]);
   return (
     <div className="mp-post-twin">
       <div className="mp-post-twin-head">
@@ -107,10 +112,14 @@ function Twin({
         <span className={over ? "mp-pill mp-pill-danger" : "mp-pill mp-pill-muted"}>{used} / 280</span>
       </div>
       <textarea
+        ref={areaRef}
         className="mp-post-textarea"
-        style={{ minHeight: 96 }}
+        rows={1}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          fitTextarea(event.target);
+        }}
         onSelect={(event) => onSelect(event.currentTarget)}
         onKeyUp={(event) => onSelect(event.currentTarget)}
         onMouseUp={(event) => onSelect(event.currentTarget)}
