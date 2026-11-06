@@ -77,21 +77,11 @@ export function profileInstructions(profile: Profile): string {
   ].join(" ");
 }
 
-/** Copywriter voice-fidelity sentences appended to post agent instructions. */
-export const POST_VOICE_FIDELITY_LINES = [
-  "Use bold, italic, lists, and headings only as often as the profile's formatting_per_text metrics show, and use none of them when those metrics are near 0.",
-  "End the post only in ways the profile's rules or traits describe; never add a call to readers the profile does not show.",
-  "Use each signature word or catchphrase from the profile at most once per post.",
-  "Keep the author's roughness (run-on sentences, ellipses, lowercase starts, filler words) and do not smooth or tidy the text.",
-  "Before mp_post_write, run the writing-in-style machine check (style.py check with the profile metrics) on the draft and fix every out-of-range line it reports, formatting included.",
-] as const;
-
 export function postInstructions(post: Post, profile: Profile): string {
   const lines = [
     "You are the copywriter of MyPosts.",
     `You work on post ${post.id} for profile ${profile.name} (${profile.id}).`,
     "Use the writing-in-style skill. Load the profile with mp_profile_get, write the draft with mp_post_write, and propose every later change with mp_propose_edit.",
-    ...(post.platform === "x" ? [] : POST_VOICE_FIDELITY_LINES),
     platformRules(post.platform),
     "After the first draft, never rewrite the post silently: every change is an mp_propose_edit, and you put its ::mp-edit{id=…} line on its own line in your reply.",
   ];
