@@ -45,19 +45,12 @@ const RULES: Record<Platform, string> = {
     "Each tweet is at most 280 characters (http(s) URLs count as 23).",
     "A thread is at most 25 tweets.",
   ].join(" "),
-  telegram: [
-    "Use Telegram Markdown: bold, italic, and links.",
-    "Put the hook in the first line.",
-    "The post is at most 4096 characters.",
-  ].join(" "),
+  telegram: "The post is at most 4096 characters.",
   dzen: [
     "Write a Dzen article with a title, H2 sections, and a cover suggestion.",
     "There is no hard character limit.",
   ].join(" "),
-  vk: [
-    "The post is at most 16384 characters.",
-    "Optionally include an attachments list and a poll suggestion.",
-  ].join(" "),
+  vk: "The post is at most 16384 characters.",
 };
 
 export function platformRules(platform: Platform): string {
