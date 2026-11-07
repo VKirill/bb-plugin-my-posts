@@ -16,9 +16,8 @@ export function toPickerValue(settings: Settings): PickerValue {
 }
 
 export function fromPickerValue(
-  settings: Settings,
+  _current: Settings,
   value: { providerId: string; model: string; reasoningLevel: string },
 ): { providerId: string; model: string } {
-  void settings;
   return { providerId: value.providerId, model: value.model };
 }

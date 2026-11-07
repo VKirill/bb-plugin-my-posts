@@ -5,7 +5,6 @@ import { railCounts } from "./model";
 import { PlatformIcon, PlusIcon } from "./icons";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { PostStatusPill } from "./pills";
-import { AgentModel } from "../settings/AgentModel";
 import { useGo, type Route } from "../routes";
 
 export function Rail({
@@ -44,7 +43,7 @@ export function Rail({
           <button
             type="button"
             className="mp-nav-item"
-            aria-current={selectedPlatform === undefined ? "page" : undefined}
+            aria-current={route.kind === "profile" && selectedPlatform === undefined ? "page" : undefined}
             onClick={() => {
               if (current === null) return;
               go({ kind: "profile", profileId: current.id, tab: route.kind === "profile" ? route.tab : undefined });
@@ -59,7 +58,7 @@ export function Rail({
               key={row.id}
               type="button"
               className="mp-nav-item"
-              aria-current={selectedPlatform === row.id ? "page" : undefined}
+              aria-current={route.kind === "profile" && selectedPlatform === row.id ? "page" : undefined}
               onClick={() => {
                 if (current === null) return;
                 go({
@@ -97,7 +96,16 @@ export function Rail({
       ) : (
         <p className="mp-meta mp-note">{creating ? t("createRailNote") : t("emptyRailNote")}</p>
       )}
-      <AgentModel />
+      <div className="mp-rail-footer">
+        <button
+          type="button"
+          className="mp-nav-item"
+          aria-current={route.kind === "settings" ? "page" : undefined}
+          onClick={() => go({ kind: "settings" })}
+        >
+          {t("settings")}
+        </button>
+      </div>
     </aside>
   );
 }

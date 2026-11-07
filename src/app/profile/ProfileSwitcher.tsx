@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { detectLocale, t } from "../i18n";
+import { t, useLocale } from "../i18n";
 import type { Profile } from "../../shared/model";
 import { initials, rememberProfileId, sourceLine } from "./model";
 import { ChevronIcon, PlusIcon } from "./icons";
@@ -15,6 +15,7 @@ export function ProfileSwitcher({
   current: Profile | null;
 }) {
   const go = useGo();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
@@ -74,7 +75,7 @@ export function ProfileSwitcher({
             <span className="mp-truncate" style={{ display: "block", fontWeight: 500, color: "var(--foreground)" }}>
               {profile.name}
             </span>
-            <span className="mp-switcher-source mp-truncate">{sourceLine(profile.source, detectLocale())}</span>
+            <span className="mp-switcher-source mp-truncate">{sourceLine(profile.source, locale)}</span>
           </span>
           <ProfileStatusPill status={profile.status} />
         </button>

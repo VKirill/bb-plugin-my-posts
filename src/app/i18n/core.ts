@@ -7,6 +7,8 @@ const en = {
   statusWriting: "Agent writing",
   statusReady: "Ready",
   statusPublished: "Published",
+  settings: "Settings",
+  language: "Language",
 };
 
 const ru: Record<keyof typeof en, string> = {
@@ -18,6 +20,8 @@ const ru: Record<keyof typeof en, string> = {
   statusWriting: "Агент пишет",
   statusReady: "Готов",
   statusPublished: "Опубликован",
+  settings: "Настройки",
+  language: "Язык",
 };
 
 export const core = { en, ru };

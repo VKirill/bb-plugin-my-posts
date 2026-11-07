@@ -1,10 +1,9 @@
-import { PLATFORMS_IDS, type Platform, type Post, type PostKind, type Profile, type ProfileStatus } from "../../shared/model";
+import { PLATFORMS_IDS, type Locale, type Platform, type Post, type PostKind, type Profile, type ProfileStatus } from "../../shared/model";
 import { PLATFORMS } from "../../shared/platforms";
+import { formatDecimal, ruPlural } from "../i18n";
 import { profile as profileCopy } from "../i18n/profile";
 import type { Route } from "../routes";
 import { readStored, STORAGE_KEYS, writeStored } from "../storage";
-
-export type ProfileLocale = "en" | "ru";
 
 export interface MetricRow {
   label: string;
@@ -108,26 +107,9 @@ function metricBag(metrics: Record<string, unknown>): Record<string, unknown> {
   return bag;
 }
 
-function formatDecimal(n: number, locale: ProfileLocale): string {
-  const text = Number.isInteger(n) ? String(n) : n.toFixed(1);
-  return locale === "ru" ? text.replace(".", ",") : text;
-}
-
-function fill(template: string, vars: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/gu, (match, name: string) => (name in vars ? String(vars[name]) : match));
-}
-
-function ruPlural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
-}
-
 function formatCountWithUnit(
   n: number,
-  locale: ProfileLocale,
+  locale: Locale,
   en: { one: string; many: string },
   ru: { one: string; few: string; many: string },
   ruFractional: string,
@@ -142,15 +124,15 @@ function formatCountWithUnit(
   return `${formatted} ${ruPlural(n, ru.one, ru.few, ru.many)}`;
 }
 
-function formatSentenceValue(n: number, locale: ProfileLocale): string {
+function formatSentenceValue(n: number, locale: Locale): string {
   return formatCountWithUnit(n, locale, { one: "word", many: "words" }, { one: "слово", few: "слова", many: "слов" }, "слова");
 }
 
-function formatPostLenValue(n: number, locale: ProfileLocale): string {
+function formatPostLenValue(n: number, locale: Locale): string {
   return formatCountWithUnit(n, locale, { one: "char", many: "chars" }, { one: "знак", few: "знака", many: "знаков" }, "знака");
 }
 
-function formatCorpusValue(texts: number, chars: number, locale: ProfileLocale): string {
+function formatCorpusValue(texts: number, chars: number, locale: Locale): string {
   if (locale === "en") {
     const postsLabel = texts === 1 ? "post" : "posts";
     const charsPart = chars < 1000 ? `${chars} chars` : `${Math.round(chars / 1000)}k chars`;
@@ -194,7 +176,7 @@ export function rulesLines(styleMd: string): string[] {
   return result;
 }
 
-export function metricRows(metrics: Record<string, unknown>, locale: ProfileLocale): MetricRow[] {
+export function metricRows(metrics: Record<string, unknown>, locale: Locale): MetricRow[] {
   const dict = profileCopy[locale];
   const bag = metricBag(metrics);
   const rows: MetricRow[] = [];
@@ -225,7 +207,7 @@ export function metricRows(metrics: Record<string, unknown>, locale: ProfileLoca
 
 const SOURCE_URL = /^(https?:\/\/|t\.me\/)/iu;
 
-export function sourceLine(source: string, locale: ProfileLocale): string {
+export function sourceLine(source: string, locale: Locale): string {
   const trimmed = source.trim();
   if (trimmed === "") return profileCopy[locale].sourceEmpty;
   if (SOURCE_URL.test(trimmed)) return trimmed;

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { PluginMessageDirectiveProps } from "@get-bb/plugin-sdk/app";
 import { errorText, useMpRpc } from "../data";
-import { t } from "../i18n";
+import { t, useLocale } from "../i18n";
 import { usePostScreen } from "./context";
 
 export function EditDirective(props: PluginMessageDirectiveProps) {
+  useLocale();
   const screen = usePostScreen();
   const rpc = useMpRpc();
   const [busy, setBusy] = useState(false);
