@@ -2,6 +2,7 @@ import type { BbPluginApi, PluginAgentConfiguration } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 import type { KickoffLocale } from "../shared/contract";
 import type { Post, Profile } from "../shared/model";
+import { compiledAgentField } from "./compiled-agent";
 import { profileRebuildKickoff, SESSION_KINDS } from "./kinds";
 import { sessionPolicyField } from "./session-policy";
 import type { Store } from "./store";
@@ -99,6 +100,11 @@ async function spawnArgs(
       bb.log.info?.("MyPosts session spawn: narrowed BB context policy applied.");
     } else {
       bb.log.info?.("MyPosts session spawn: using BB default context (no session policy capability).");
+    }
+    const compiledField = compiledAgentField(bb.agents, settings.providerId, pluginMetadata.kind);
+    if (Object.keys(compiledField).length > 0) {
+      Object.assign(args as unknown as Record<string, unknown>, compiledField);
+      bb.log.info?.("MyPosts session spawn: compiled MyPosts agent applied.");
     }
   } else {
     bb.log.warn(`Provider ${settings.providerId} is not installed; spawning the MyPosts session with BB defaults.`);
