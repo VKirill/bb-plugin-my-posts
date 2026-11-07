@@ -9,6 +9,7 @@ import { NewPostDialog } from "./NewPostDialog";
 import { ProfileHome } from "./ProfileHome";
 import { Rail } from "./Rail";
 import type { Profile } from "../../shared/model";
+import { Tabs } from "../ui/Segmented";
 
 export function ProfileArea({ route }: { route: Route }) {
   useLocale();
@@ -60,26 +61,15 @@ export function ProfileArea({ route }: { route: Route }) {
   return (
     <div className="mp-profile">
       <div className="mp-pane-tabs">
-        <div className="mp-seg" role="tablist">
-          <button
-            type="button"
-            className="mp-seg-item mp-btn mp-ghost"
-            role="tab"
-            aria-selected={pane === "posts"}
-            onClick={() => setPane("posts")}
-          >
-            {t("tabPosts")}
-          </button>
-          <button
-            type="button"
-            className="mp-seg-item mp-btn mp-ghost"
-            role="tab"
-            aria-selected={pane === "voice"}
-            onClick={() => setPane("voice")}
-          >
-            {t("tabVoice")}
-          </button>
-        </div>
+        <Tabs
+          label={t("tabPosts")}
+          value={pane}
+          onChange={setPane}
+          items={[
+            { id: "posts", label: t("tabPosts") },
+            { id: "voice", label: t("tabVoice") },
+          ]}
+        />
       </div>
       <div className="mp-layout" data-pane={pane}>
         <Rail
@@ -95,7 +85,7 @@ export function ProfileArea({ route }: { route: Route }) {
             <div className="mp-empty-wrap">
               <div className="mp-card mp-empty">
                 <h1 className="mp-h1">{t("profileEmptyTitle")}</h1>
-                <p className="mp-meta" style={{ margin: 0 }}>
+                <p className="mp-meta mp-meta-flush">
                   {t("profileEmptyHint")}
                 </p>
                 <button type="button" className="mp-btn mp-accent" onClick={() => go({ kind: "create-profile" })}>
@@ -106,7 +96,7 @@ export function ProfileArea({ route }: { route: Route }) {
           </main>
         ) : current === null ? (
           <main className="mp-centre">
-            <p className="mp-meta" style={{ padding: "var(--mp-pad-page)" }}>
+            <p className="mp-meta mp-meta-pad">
               {profileQuery.loading ? t("loading") : t("noProfile")}
             </p>
           </main>

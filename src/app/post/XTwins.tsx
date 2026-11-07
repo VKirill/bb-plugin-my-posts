@@ -36,11 +36,11 @@ export function XTwins({
   }
 
   return (
-    <div className="mp-post-x" ref={cardRef} style={{ display: "flex", flexDirection: "column", gap: "var(--mp-s2)" }}>
+    <div className="mp-post-x" ref={cardRef}>
       <div className="mp-post-meta">
         <span style={{ fontWeight: 600 }}>{t("tweet")}</span>
         <span className="mp-post-grow" />
-        <label className="mp-post-saved" style={{ gap: 6 }}>
+        <label className="mp-post-saved">
           <input type="checkbox" checked={keepInSync} onChange={(event) => onKeepInSync(event.target.checked)} />
           {t("keepInSync")}
         </label>
@@ -71,14 +71,13 @@ export function XTwins({
       {tweets.length < MAX ? (
         <button
           type="button"
-          className="mp-btn sm ghost"
-          style={{ alignSelf: "flex-start" }}
+          className="mp-btn sm ghost mp-self-start"
           onClick={() => onChange([...tweets, emptyTweet()], tweets.length, "en")}
         >
           {t("addTweet")}
         </button>
       ) : null}
-      <p className="mp-post-rules" style={{ margin: 0 }}>
+      <p className="mp-post-rules mp-flush">
         {t("tweetCountNote")}
       </p>
     </div>

@@ -62,7 +62,7 @@ export function EditDirective(props: PluginMessageDirectiveProps) {
           </>
         )}
       </div>
-      {error !== null ? <p className="mp-post-error" style={{ padding: "0 12px 8px" }}>{error}</p> : null}
+      {error !== null ? <p className="mp-post-error">{error}</p> : null}
     </div>
   );
 }

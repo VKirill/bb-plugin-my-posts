@@ -13,6 +13,7 @@ import type { Platform } from "../../shared/model";
 import { PLATFORM_LIST } from "../../shared/platforms";
 import { canCreatePost, kindForNewPost } from "./model";
 import { PlatformIcon } from "./icons";
+import { Toggle } from "../ui/Segmented";
 
 export function NewPostDialog({
   open,
@@ -62,25 +63,15 @@ export function NewPostDialog({
         <DialogHeader className="flex-row items-center gap-2">
           <DialogTitle>{t("newPostTitle")}</DialogTitle>
           <span className="mp-grow" />
-          <span className="mp-seg" role="group">
-            <button
-              type="button"
-              className="mp-seg-item mp-btn mp-ghost"
-              aria-pressed={!article}
-              onClick={() => setArticle(false)}
-            >
-              {t("kindPost")}
-            </button>
-            <button
-              type="button"
-              className="mp-seg-item mp-btn mp-ghost"
-              aria-pressed={article}
-              disabled={!canCreatePost(platform, "article")}
-              onClick={() => setArticle(true)}
-            >
-              {t("kindArticle")}
-            </button>
-          </span>
+          <Toggle
+            label={t("kindPost")}
+            value={article ? "article" : "post"}
+            onChange={(id) => setArticle(id === "article")}
+            items={[
+              { id: "post", label: t("kindPost") },
+              { id: "article", label: t("kindArticle"), disabled: !canCreatePost(platform, "article") },
+            ]}
+          />
         </DialogHeader>
         <div className="mp-plat-grid">
           {PLATFORM_LIST.map((row) => {

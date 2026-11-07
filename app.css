@@ -29,10 +29,8 @@
 }
 
 .mp-app {
-  --mp-gap: 16px;
   --mp-gap-sm: 8px;
   --mp-pad-page: 24px;
-  --mp-pad-card: 20px;
   --mp-rail-w: 240px;
   --mp-chat-w: 400px;
   --mp-crumb-h: 48px;
@@ -80,6 +78,19 @@
     filter: brightness(1.05) saturate(1.05);
   }
 
+  .mp-ghost,
+  .mp-btn.ghost {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mp-btn.sm {
+    height: 28px;
+    padding: 0 var(--mp-s2);
+    font-size: 12px;
+  }
+
   .mp-input {
     height: 32px;
     width: 100%;
@@ -92,18 +103,39 @@
   }
 
   .mp-seg {
+    position: relative;
     display: inline-flex;
     max-width: 100%;
     align-items: center;
-    gap: 2px;
+    gap: 0;
     padding: 3px;
     border: 1px solid var(--mp-hairline);
     border-radius: 9px;
     background-color: var(--mp-well);
   }
 
-  .mp-seg-item {
+  .mp-seg-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc((100% - 6px) / var(--mp-seg-n, 1));
     border-radius: 6px;
+    background-color: var(--mp-card);
+    box-shadow: var(--mp-raise);
+    transform: translateX(calc(var(--mp-seg-i, 0) * 100%));
+    transition: transform 200ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mp-seg-item {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    border-radius: 6px;
+    background: transparent;
+    box-shadow: none;
     color: var(--muted-foreground);
     font-weight: 500;
   }
@@ -112,16 +144,61 @@
     color: var(--foreground);
   }
 
-  .mp-seg-item:is([data-state="active"], [aria-pressed="true"]) {
-    background-color: var(--mp-card);
-    box-shadow: var(--mp-raise);
+  .mp-seg-item:is([aria-selected="true"], [aria-pressed="true"]) {
+    background-color: transparent;
+    box-shadow: none;
     color: var(--foreground);
     font-weight: 600;
+  }
+
+  .mp-tab-host,
+  .mp-tab-panel {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mp-tab-panel {
+    animation: mp-tab-in 180ms ease;
+  }
+
+  @keyframes mp-tab-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mp-seg-thumb,
+    .mp-tab-panel,
+    .mp-nav-item {
+      transition: none;
+      animation: none;
+    }
   }
 
   .mp-nav-item {
     border-radius: 8px;
     color: var(--muted-foreground);
+    transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .mp-popover-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .mp-btn-block {
+    width: 100%;
+  }
+
+  .mp-meta-flush {
+    margin: 0;
+  }
+
+  .mp-meta-pad {
+    padding: var(--mp-pad-page);
   }
 
   .mp-nav-item:hover {

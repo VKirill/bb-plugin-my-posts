@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 import type { Platform, Tweet } from "../../shared/model";
 import { readingMinutes } from "../../shared/platforms";
 import { t } from "../i18n";
+import { Toggle } from "../ui/Segmented";
 
 type PreviewProps = {
   platform: Platform;
@@ -26,9 +27,9 @@ const PREVIEWS: Record<Platform, (props: PreviewProps) => ReactElement> = {
 export function Preview(props: PreviewProps) {
   const PreviewForPlatform = PREVIEWS[props.platform];
   return (
-    <div className="mp-col" style={{ display: "flex", flexDirection: "column", gap: "var(--mp-s3)" }}>
+    <div className="mp-col">
       <PreviewForPlatform {...props} />
-      <p className="mp-post-rules" style={{ margin: 0, textAlign: "center" }}>
+      <p className="mp-post-rules mp-preview-note">
         {t("previewNote")}
       </p>
     </div>
@@ -67,20 +68,22 @@ function XPreview({
 }) {
   return (
     <>
-      <div className="mp-post-meta" style={{ justifyContent: "center" }}>
-        <span className="mp-seg" role="tablist">
-          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={lang === "en"} onClick={() => onLang("en")}>
-            {t("langEn")}
-          </button>
-          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={lang === "ru"} onClick={() => onLang("ru")}>
-            {t("langRu")}
-          </button>
-        </span>
+      <div className="mp-post-meta mp-post-meta-center">
+        <Toggle
+          label={t("langEn")}
+          size="sm"
+          value={lang}
+          onChange={onLang}
+          items={[
+            { id: "en", label: t("langEn") },
+            { id: "ru", label: t("langRu") },
+          ]}
+        />
       </div>
       <div className="mp-post-xprev">
         {tweets.map((tweet, index) => (
           <article key={index} className="mp-post-xcard">
-            <div className="mp-post-meta" style={{ marginBottom: 6 }}>
+            <div className="mp-post-meta mp-xcard-meta">
               <span className="mp-post-avatar">{initials(name)}</span>
               <b style={{ fontSize: 13 }}>{name}</b>
             </div>
@@ -97,8 +100,8 @@ function DzenPreview({ title, body }: { title: string; body: string }) {
   const blocks = splitDzen(body);
   return (
     <article className="mp-card mp-post-edcard mp-post-dzen">
-      <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>{title}</h1>
-      <p className="mp-post-rules" style={{ margin: "8px 0 0" }}>
+      <h1 className="mp-dzen-title">{title}</h1>
+      <p className="mp-post-rules mp-dzen-read">
         {t("readingMinutes", { n: minutes })}
       </p>
       {blocks.map((block, index) =>
@@ -111,7 +114,7 @@ function DzenPreview({ title, body }: { title: string; body: string }) {
 function VkPreview({ name, body }: { name: string; body: string }) {
   return (
     <article className="mp-card mp-post-edcard mp-post-vk">
-      <div className="mp-post-meta" style={{ marginBottom: 12 }}>
+      <div className="mp-post-meta mp-vk-meta">
         <span className="mp-post-avatar">{initials(name)}</span>
         <b>{name}</b>
       </div>

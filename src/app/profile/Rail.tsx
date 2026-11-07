@@ -33,7 +33,7 @@ export function Rail({
     <aside className="mp-rail">
       <ProfileSwitcher profiles={profiles} current={current} />
       {current !== null && !creating ? (
-        <button type="button" className="mp-btn mp-accent" style={{ width: "100%" }} onClick={onNewPost}>
+        <button type="button" className="mp-btn mp-accent mp-btn-block" onClick={onNewPost}>
           <PlusIcon />
           {t("newPost")}
         </button>
@@ -81,12 +81,13 @@ export function Rail({
               key={post.id}
               type="button"
               className="mp-rail-post mp-nav-item"
+              aria-current={route.kind === "post" && route.postId === post.id ? "page" : undefined}
               onClick={() => go({ kind: "post", postId: post.id })}
             >
               <PlatformIcon platform={post.platform} />
               <span className="mp-grow">
                 <span className="mp-rail-post-title mp-truncate">{post.title}</span>
-                <span className="mp-meta" style={{ display: "flex", gap: "var(--mp-s2)", marginTop: "var(--mp-s1)" }}>
+                <span className="mp-meta">
                   <PostStatusPill status={post.status} />
                 </span>
               </span>
