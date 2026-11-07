@@ -238,3 +238,21 @@
   .mp-pill-warning { background-color: color-mix(in oklab, var(--mp-warning) 16%, transparent); color: var(--mp-warning-text); }
   .mp-pill-muted { background-color: color-mix(in oklab, var(--foreground) 7%, transparent); color: var(--foreground); }
 }
+
+@media (max-width: 720px) {
+  .mp-portal {
+    padding-bottom: calc(var(--mp-pad-card) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mp-portal .mp-btn {
+    min-height: 40px;
+  }
+
+  .mp-portal .flex-col-reverse {
+    gap: 12px;
+  }
+
+  .mp-rail-footer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
