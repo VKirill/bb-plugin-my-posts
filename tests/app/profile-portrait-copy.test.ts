@@ -58,6 +58,11 @@ describe("rulesLines", () => {
     expect(rulesLines("## Voice only\n- trait\n")).toEqual([]);
   });
 
+  it("skips sub-headings inside the rules section", () => {
+    const styleMd = "## Правила генерации\n### do\n- А\n- Б\n### avoid\n- В\n## Другое";
+    expect(rulesLines(styleMd)).toEqual(["А", "Б", "В"]);
+  });
+
   it("stops at six lines", () => {
     const md = [
       "## Generation rules",

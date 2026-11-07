@@ -102,7 +102,6 @@ export function useLocale(): Locale {
   return useSyncExternalStore(subscribeLang, detectLocale, () => "en" as Locale);
 }
 
-/** Translate a known key. */
 export function t(key: MessageKey, vars?: Record<string, string | number>): string {
   return fill(DICTIONARIES[detectLocale()][key], vars);
 }
