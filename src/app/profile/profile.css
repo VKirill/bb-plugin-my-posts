@@ -1,7 +1,4 @@
 .mp-app {
-  --mp-s1: 4px;
-  --mp-s2: 8px;
-  --mp-s3: 12px;
   container-type: inline-size;
   container-name: mp;
 }
@@ -26,7 +23,7 @@
   width: 100%;
 }
 
-.mp-pane-tabs .mp-seg-item {
+.mp-pane-tabs .mp-seg > button {
   flex: 1;
   justify-content: center;
   height: 28px;
@@ -301,6 +298,25 @@
   gap: var(--mp-s3);
 }
 
+.mp-panel-body-flush {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.mp-rowlist.mp-panel-body {
+  padding: var(--mp-s1);
+}
+
+.mp-platcard .mp-meta {
+  display: block;
+}
+
+.mp-rail-post .mp-meta {
+  display: flex;
+  gap: var(--mp-s2);
+  margin-top: var(--mp-s1);
+}
+
 .mp-layer {
   display: flex;
   flex-direction: column;
@@ -414,8 +430,9 @@
   margin: 0 var(--mp-s3) var(--mp-s3);
 }
 
-.mp-switcher-wrap {
-  position: relative;
+.mp-rail .mp-popover-wrap {
+  display: block;
+  width: 100%;
 }
 
 .mp-switcher {

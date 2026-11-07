@@ -1,5 +1,6 @@
 import { t } from "../i18n";
 import type { Platform, Post, Proposal } from "../../shared/model";
+import { COMPACT_AT } from "../ui/breakpoints";
 
 export const CHAT_WIDTH_KEY = "my-posts.chatWidth";
 export const DIVIDER_PX = 9;
@@ -9,7 +10,7 @@ export const MIN_POST = 480;
 export const DEFAULT_CHAT = 400;
 export const DEFAULT_CHAT_NARROW = 380;
 export const TABS_AT = 900;
-export const COMPACT_CHAT_AT = 1280;
+export const COMPACT_CHAT_AT = COMPACT_AT;
 export const DIVIDER_STEP = 16;
 
 export type SplitMode = "split" | "tabs";

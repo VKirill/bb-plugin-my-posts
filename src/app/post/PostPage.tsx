@@ -25,6 +25,9 @@ import {
 import { Preview, initials } from "./Preview";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { XTwins } from "./XTwins";
+import { Popover } from "../ui/Popover";
+import { TabPanel, Tabs, Toggle } from "../ui/Segmented";
+import { COMPACT_AT } from "../ui/breakpoints";
 import "./post.css";
 
 const STATUS_PILL: Record<PostStatus, string> = {
@@ -220,7 +223,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   }
 
   const timeLabel = formatTime(post.updatedAt);
-  const crumbTitleVisible = paneWidth >= 1280;
+  const crumbTitleVisible = paneWidth >= COMPACT_AT;
 
   return (
     <div
@@ -264,27 +267,43 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
             </>
           ) : null}
         </nav>
-        <span className="mp-seg mp-post-tabs" role="tablist">
-          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-selected={pane === "post"} onClick={() => setPane("post")}>
-            {t("tabPost")}
-          </button>
-          <button type="button" className="mp-seg-item mp-btn sm ghost" aria-selected={pane === "chat"} onClick={() => setPane("chat")}>
-            {t("tabChat")}
-            <span className="mp-post-badge" data-empty={badge === 0 ? "true" : "false"}>
-              {badge === 0 ? "" : badge}
-            </span>
-          </button>
-        </span>
-        <button
-          type="button"
-          className="mp-btn sm"
-          aria-haspopup="menu"
-          aria-expanded={postsOpen}
-          onClick={() => setPostsOpen((open) => !open)}
+        <Tabs
+          label={t("tabPost")}
+          size="sm"
+          value={pane}
+          onChange={setPane}
+          items={[
+            { id: "post", label: t("tabPost") },
+            {
+              id: "chat",
+              label: (
+                <>
+                  {t("tabChat")}
+                  <span className="mp-post-badge" data-empty={badge === 0 ? "true" : "false"}>
+                    {badge === 0 ? "" : badge}
+                  </span>
+                </>
+              ),
+            },
+          ]}
+        />
+        <Popover
+          open={postsOpen}
+          onClose={() => setPostsOpen(false)}
+          role="menu"
+          className="mp-post-posts-pop"
+          anchor={
+            <button
+              type="button"
+              className="mp-btn sm"
+              aria-haspopup="menu"
+              aria-expanded={postsOpen}
+              onClick={() => setPostsOpen((open) => !open)}
+            >
+              ≡ <span className="mp-post-posts-lbl">{t("posts")}</span> ▾
+            </button>
+          }
         >
-          ≡ <span className="mp-post-posts-lbl">{t("posts")}</span> ▾
-        </button>
-        <div className="mp-post-posts-pop" hidden={!postsOpen} role="menu">
           <div className="mp-post-menu-label">
             {t("posts")} · {profileName}
           </div>
@@ -307,27 +326,29 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
               <span className={`mp-pill ${STATUS_PILL[row.status]}`}>{t(STATUS_KEY[row.status])}</span>
             </button>
           ))}
-        </div>
+        </Popover>
       </header>
 
       <div className="mp-post-split">
         <section className="mp-post-col" aria-label={t("tabPost")}>
           <div className="mp-post-head">
             <div className="mp-post-meta">
-              <span className="mp-post-tile" style={{ width: 28, height: 28 }}>
+              <span className="mp-post-tile mp-post-tile-md">
                 <PlatformIcon platform={post.platform} />
               </span>
               {showLabel ? <span className="mp-post-platname">{label}</span> : null}
               <span className={`mp-pill ${STATUS_PILL[post.status]}`}>{t(STATUS_KEY[post.status])}</span>
               <span className="mp-post-grow" />
-              <span className="mp-seg" role="tablist">
-                <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={mode === "editor"} onClick={() => setMode("editor")}>
-                  {t("editor")}
-                </button>
-                <button type="button" className="mp-seg-item mp-btn sm ghost" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>
-                  {t("preview")}
-                </button>
-              </span>
+              <Toggle
+                label={t("editor")}
+                size="sm"
+                value={mode}
+                onChange={setMode}
+                items={[
+                  { id: "editor", label: t("editor") },
+                  { id: "preview", label: t("preview") },
+                ]}
+              />
             </div>
             <textarea
               className="mp-post-title"
@@ -348,31 +369,33 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
                   <span>{platformRulesLine(post.platform)}</span>
                 </span>
               </div>
-              {mode === "editor" && !def.perTweet ? (
-                <Editor platform={post.platform} value={body} onChange={(next) => { setBody(next); schedule({ body: next }); }} onSelection={onSelection} cardRef={cardRef} />
-              ) : null}
-              {mode === "editor" && def.perTweet ? (
-                <XTwins
-                  tweets={tweets}
-                  keepInSync={keepInSync}
-                  onKeepInSync={setKeepInSync}
-                  onChange={onTweets}
-                  onUpdateRu={(index) => void onUpdateRu(index)}
-                  onSelection={onSelection}
-                />
-              ) : null}
-              {mode === "preview" ? (
-                <Preview
-                  platform={post.platform}
-                  title={title}
-                  body={body}
-                  tweets={tweets}
-                  profileName={profileName}
-                  previewLang={previewLang}
-                  onPreviewLang={setPreviewLang}
-                  timeLabel={timeLabel}
-                />
-              ) : null}
+              <TabPanel id={mode}>
+                {mode === "editor" && !def.perTweet ? (
+                  <Editor platform={post.platform} value={body} onChange={(next) => { setBody(next); schedule({ body: next }); }} onSelection={onSelection} cardRef={cardRef} />
+                ) : null}
+                {mode === "editor" && def.perTweet ? (
+                  <XTwins
+                    tweets={tweets}
+                    keepInSync={keepInSync}
+                    onKeepInSync={setKeepInSync}
+                    onChange={onTweets}
+                    onUpdateRu={(index) => void onUpdateRu(index)}
+                    onSelection={onSelection}
+                  />
+                ) : null}
+                {mode === "preview" ? (
+                  <Preview
+                    platform={post.platform}
+                    title={title}
+                    body={body}
+                    tweets={tweets}
+                    profileName={profileName}
+                    previewLang={previewLang}
+                    onPreviewLang={setPreviewLang}
+                    timeLabel={timeLabel}
+                  />
+                ) : null}
+              </TabPanel>
             </div>
           </div>
           <div className="mp-post-foot">
@@ -447,7 +470,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
             </div>
             <div className="mp-post-chat-main">
               {post.threadId === null ? (
-                <p className="mp-post-rules" style={{ padding: 16 }}>
+                <p className="mp-post-rules mp-chat-empty">
                   {t("noThread")}
                 </p>
               ) : (

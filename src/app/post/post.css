@@ -1,8 +1,4 @@
 .mp-post-page {
-  --mp-s1: 4px;
-  --mp-s2: 8px;
-  --mp-s3: 12px;
-  --mp-chat-w: 400px;
   container-type: inline-size;
   container-name: mp-post;
   display: flex;
@@ -131,11 +127,11 @@
   white-space: nowrap;
 }
 
-.mp-post-tabs {
+.mp-post-bar > .mp-seg {
   display: none;
 }
 
-.mp-post-tabs .mp-seg-item {
+.mp-post-bar > .mp-seg > button {
   min-width: 64px;
   justify-content: center;
 }
@@ -164,8 +160,8 @@
 .mp-post-posts-pop {
   position: absolute;
   z-index: 30;
-  top: 44px;
-  right: var(--mp-s3);
+  top: calc(100% + 4px);
+  right: 0;
   width: 340px;
   max-width: calc(100% - 16px);
   max-height: min(480px, calc(100% - 56px));
@@ -196,7 +192,7 @@
   display: none;
 }
 
-.mp-post-page[data-split="tabs"] .mp-post-tabs {
+.mp-post-page[data-split="tabs"] .mp-post-bar > .mp-seg {
   display: inline-flex;
 }
 
@@ -595,6 +591,66 @@
 .mp-post-error {
   color: var(--mp-danger-text, var(--destructive));
   font-size: 12px;
+}
+
+.mp-post-proposal .mp-post-error {
+  padding: 0 12px 8px;
+}
+
+.mp-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mp-s3);
+}
+
+.mp-preview-note {
+  margin: 0;
+  text-align: center;
+}
+
+.mp-post-meta-center {
+  justify-content: center;
+}
+
+.mp-xcard-meta {
+  margin-bottom: 6px;
+}
+
+.mp-dzen-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.mp-dzen-read {
+  margin: 8px 0 0;
+}
+
+.mp-vk-meta {
+  margin-bottom: 12px;
+}
+
+.mp-chat-empty {
+  padding: 16px;
+}
+
+.mp-post-x {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mp-s2);
+}
+
+.mp-self-start {
+  align-self: flex-start;
+}
+
+.mp-flush {
+  margin: 0;
+}
+
+.mp-post-tile-md {
+  width: 28px;
+  height: 28px;
 }
 
 .mp-post-phone {
