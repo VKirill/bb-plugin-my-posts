@@ -102,6 +102,7 @@ export function ProfileArea({ route }: { route: Route }) {
         ) : (
           <ProfileHome
             profile={current}
+            profiles={profiles}
             posts={posts}
             tab={route.kind === "profile" ? (route.tab ?? "overview") : "overview"}
             onRebuild={() => {

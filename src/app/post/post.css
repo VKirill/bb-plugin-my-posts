@@ -422,6 +422,12 @@
   color: #ffffff;
 }
 
+.mp-danger-btn {
+  border-color: transparent;
+  background-color: var(--destructive, #c0392b);
+  color: #ffffff;
+}
+
 .mp-post-tweet {
   border: 1px solid var(--mp-hairline);
   border-radius: 12px;
