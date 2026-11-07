@@ -1,4 +1,21 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+  type ButtonHTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+
+type AnchorProps = ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function popoverAnchor(anchor: ReactElement<AnchorProps>, open: boolean): ReactElement<AnchorProps> {
+  return cloneElement(anchor, {
+    "aria-haspopup": "menu",
+    "aria-expanded": open ? "true" : "false",
+  });
+}
 
 export function Popover({
   open,
@@ -35,7 +52,7 @@ export function Popover({
 
   return (
     <div ref={rootRef} className="mp-popover-wrap">
-      {anchor}
+      {isValidElement(anchor) ? popoverAnchor(anchor as ReactElement<AnchorProps>, open) : anchor}
       {open ? (
         <div className={className} role={role}>
           {children}
