@@ -46,6 +46,19 @@ export function profileKickoff(profile: Profile, locale: KickoffLocale = "en"): 
   return `Build the style portrait of profile «${name}». ${sourcePart}`;
 }
 
+export function profileRebuildKickoff(profile: Profile, locale: KickoffLocale = "en"): string {
+  const name = profile.name;
+  const sourceTrim = profile.source.trim();
+  if (locale === "ru") {
+    const sourcePart =
+      sourceTrim === "" ? "попроси у меня ссылку на канал или тексты" : sourceTrim;
+    return `Пересобери портрет стиля профиля «${name}» заново. Текущий портрет и источник возьми через mp_profile_get, тексты — из источника: ${sourcePart}. Сохрани новый портрет через mp_profile_save.`;
+  }
+  const sourcePart =
+    sourceTrim === "" ? "ask the user for a channel link or texts" : sourceTrim;
+  return `Rebuild the style portrait of profile «${name}» from scratch. Load the current portrait and source via mp_profile_get, texts from the source: ${sourcePart}. Save the new portrait via mp_profile_save.`;
+}
+
 export function postKickoff(
   post: Post,
   profile: Profile,

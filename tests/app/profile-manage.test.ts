@@ -1,11 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  deleteProfileText,
-  rebuildPrompt,
-  routeAfterProfileDelete,
-} from "../../src/app/profile/manage";
+import { deleteProfileText, routeAfterProfileDelete } from "../../src/app/profile/manage";
 import type { Profile } from "../../src/shared/model";
 import { ConfirmDialogBody } from "../../src/app/ui/ConfirmDialog";
 
@@ -41,13 +37,6 @@ describe("deleteProfileText", () => {
     expect(deleteProfileText("Кирилл", 5, "ru")).toContain("5 постов");
     expect(deleteProfileText("Kirill", 1, "en")).toContain("Kirill");
     expect(deleteProfileText("Kirill", 1, "en")).toContain("1 post");
-  });
-});
-
-describe("rebuildPrompt", () => {
-  it("returns a non-empty Russian instruction", () => {
-    expect(rebuildPrompt("ru")).toMatch(/[А-Яа-яЁё]/u);
-    expect(rebuildPrompt("ru").length).toBeGreaterThan(0);
   });
 });
 

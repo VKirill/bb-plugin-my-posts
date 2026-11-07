@@ -18,9 +18,3 @@ export function deleteProfileText(name: string, postCount: number, locale: Local
   const posts = postCount === 1 ? "post" : "posts";
   return `Delete profile “${name}” and ${postCount} ${posts}? This cannot be undone.`;
 }
-
-export function rebuildPrompt(locale: Locale): string {
-  return locale === "ru"
-    ? "Пересобери портрет стиля по исходным текстам профиля. Обнови измеримое, голос и правила генерации."
-    : "Rebuild the style portrait from the profile source texts. Update the measured, voice and writing-rules layers.";
-}
