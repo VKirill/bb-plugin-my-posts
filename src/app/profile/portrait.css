@@ -1,0 +1,9 @@
+.mp-layer .mp-meta {
+  color: color-mix(in oklab, var(--foreground) 88%, transparent);
+  line-height: 1.5;
+}
+
+.mp-layer .mp-meta strong {
+  color: var(--foreground);
+  font-weight: 600;
+}

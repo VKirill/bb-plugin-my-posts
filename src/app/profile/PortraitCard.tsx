@@ -1,7 +1,23 @@
+import type { ReactNode } from "react";
 import { t, useLocale } from "../i18n";
 import type { Profile } from "../../shared/model";
 import { metricRows, portraitLayers, rulesLines } from "./model";
 import { LayerPill } from "./pills";
+import "./portrait.css";
+
+const INLINE_MARKUP = /(\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*)/u;
+
+function renderInline(text: string): ReactNode[] {
+  return text.split(INLINE_MARKUP).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (/^\*[^*\s][^*\n]*\*$/u.test(part)) {
+      return <em key={index}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
 
 export function PortraitCard({ profile, compact = false }: { profile: Profile; compact?: boolean }) {
   const locale = useLocale();
@@ -36,7 +52,7 @@ export function PortraitCard({ profile, compact = false }: { profile: Profile; c
             ? null
             : profile.traits.map((trait) => (
                 <span key={trait} className="mp-meta">
-                  {trait}
+                  {renderInline(trait)}
                 </span>
               ))}
         </div>
@@ -49,7 +65,7 @@ export function PortraitCard({ profile, compact = false }: { profile: Profile; c
             ? null
             : rules.map((line) => (
                 <span key={line} className="mp-meta">
-                  {line}
+                  {renderInline(line)}
                 </span>
               ))}
         </div>
