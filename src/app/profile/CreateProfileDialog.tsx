@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { t, useLocale } from "../i18n";
-import { useMpRpc } from "../data";
+import { errorText, useMpRpc } from "../data";
 import type { Profile } from "../../shared/model";
 
 export function CreateProfileForm({
@@ -37,7 +37,7 @@ export function CreateProfileForm({
       });
       onCreated(next);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorText(cause));
     } finally {
       setBusy(false);
     }

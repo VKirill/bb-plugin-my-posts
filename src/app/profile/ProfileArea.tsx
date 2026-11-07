@@ -30,11 +30,10 @@ export function ProfileArea({ route }: { route: Route }) {
   }, [go, profiles, profilesQuery.loading, route.kind]);
 
   const listedId = route.kind === "profile" ? route.profileId : lastProfileId(profiles);
-  const queryId = listedId ?? "prf_none";
-  const profileQuery = useProfile(queryId);
-  const postsQuery = usePosts(queryId);
+  const profileQuery = useProfile(listedId);
+  const postsQuery = usePosts(listedId);
   const liveProfile: Profile | null =
-    queryId === "prf_none" ? null : (profileQuery.data ?? profiles.find((row) => row.id === queryId) ?? null);
+    listedId === null ? null : (profileQuery.data ?? profiles.find((row) => row.id === listedId) ?? null);
   const current = liveProfile ?? profiles.find((row) => row.id === listedId) ?? null;
   const posts = postsQuery.data?.posts ?? [];
 
