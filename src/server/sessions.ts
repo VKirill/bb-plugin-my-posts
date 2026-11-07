@@ -112,6 +112,32 @@ async function spawnArgs(
   return args;
 }
 
+type SpawnArgs = Parameters<BbPluginApi["sdk"]["threads"]["spawn"]>[0];
+
+function spawnRefusalText(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (error === null || typeof error !== "object") return message;
+  const extra = error as { code?: unknown; detail?: unknown };
+  const parts = [message];
+  if (extra.code !== undefined) parts.push(`code=${String(extra.code)}`);
+  if (extra.detail !== undefined) parts.push(`detail=${String(extra.detail)}`);
+  return parts.join(" ");
+}
+
+async function spawnSession(bb: BbPluginApi, args: SpawnArgs): Promise<{ id: string }> {
+  try {
+    return await bb.sdk.threads.spawn(args);
+  } catch (error) {
+    const record = args as unknown as Record<string, unknown>;
+    if (!("experimental_vkCompiledMainAgent" in record)) throw error;
+    bb.log.warn(
+      `MyPosts session spawn: the hub refused the compiled MyPosts agent (${spawnRefusalText(error)}); spawning without it.`,
+    );
+    const { experimental_vkCompiledMainAgent: _dropped, ...plain } = record;
+    return await bb.sdk.threads.spawn(plain as unknown as SpawnArgs);
+  }
+}
+
 export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
   return {
     async startProfileSession(profile: Profile, locale: KickoffLocale = "en", mode: "build" | "rebuild" = "build") {
@@ -119,7 +145,8 @@ export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
         mode === "rebuild"
           ? profileRebuildKickoff(profile, locale)
           : SESSION_KINDS.profile.kickoff({ profile }, locale);
-      const thread = await bb.sdk.threads.spawn(
+      const thread = await spawnSession(
+        bb,
         await spawnArgs(bb, store, `Style · ${profile.name}`, prompt, {
           kind: "profile",
           profileId: profile.id,
@@ -129,7 +156,8 @@ export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
     },
     async startPostSession(post: Post, brief: string | null, locale: KickoffLocale = "en") {
       const profile = store.getProfile(post.profileId);
-      const thread = await bb.sdk.threads.spawn(
+      const thread = await spawnSession(
+        bb,
         await spawnArgs(
           bb,
           store,
