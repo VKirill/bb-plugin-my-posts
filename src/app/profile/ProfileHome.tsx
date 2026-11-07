@@ -1,27 +1,12 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
-import { t } from "../i18n";
+import { platformHint, platformLabel, t } from "../i18n";
 import type { Post, Profile } from "../../shared/model";
-import { PLATFORMS } from "../../shared/platforms";
+import { PLATFORM_LIST } from "../../shared/platforms";
 import { railCounts, recentPosts, initials } from "./model";
 import { PlatformIcon, RefreshIcon } from "./icons";
 import { PostStatusPill, ProfileStatusPill } from "./pills";
 import { PortraitCard } from "./PortraitCard";
-import { platformLabel } from "./Rail";
 import { useGo, type ProfileTab } from "../routes";
-
-const PLATFORM_KEYS = {
-  telegram: "platformTelegram",
-  x: "platformX",
-  dzen: "platformDzen",
-  vk: "platformVk",
-} as const;
-
-const HINT_KEYS = {
-  telegram: "hintTelegram",
-  x: "hintX",
-  dzen: "hintDzen",
-  vk: "hintVk",
-} as const;
 
 export function ProfileHome({
   profile,
@@ -97,13 +82,13 @@ export function ProfileHome({
                 <span className="mp-meta">{counts.all}</span>
               </div>
               <div className="mp-panel-body" style={{ paddingTop: 0, paddingBottom: 0 }}>
-                {PLATFORMS.map((row) => (
+                {PLATFORM_LIST.map((row) => (
                   <div key={row.id} className="mp-platcard">
                     <PlatformIcon platform={row.id} />
                     <span className="mp-grow">
-                      <span className="mp-h2">{t(PLATFORM_KEYS[row.id])}</span>
+                      <span className="mp-h2">{platformLabel(row.id)}</span>
                       <span className="mp-meta" style={{ display: "block" }}>
-                        {t(HINT_KEYS[row.id])}
+                        {platformHint(row.id)}
                       </span>
                     </span>
                     <span className="mp-meta">{counts[row.id]}</span>

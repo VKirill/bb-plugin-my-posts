@@ -6,27 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { t, useLocale } from "../i18n";
+import { platformHint, platformLabel, t, useLocale } from "../i18n";
 import { useMpRpc } from "../data";
 import { useGo } from "../routes";
 import type { Platform } from "../../shared/model";
-import { PLATFORMS } from "../../shared/platforms";
+import { PLATFORM_LIST } from "../../shared/platforms";
 import { canCreatePost, kindForNewPost } from "./model";
 import { PlatformIcon } from "./icons";
-
-const PLATFORM_KEYS = {
-  telegram: "platformTelegram",
-  x: "platformX",
-  dzen: "platformDzen",
-  vk: "platformVk",
-} as const;
-
-const HINT_KEYS = {
-  telegram: "hintTelegram",
-  x: "hintX",
-  dzen: "hintDzen",
-  vk: "hintVk",
-} as const;
 
 export function NewPostDialog({
   open,
@@ -89,7 +75,7 @@ export function NewPostDialog({
               type="button"
               className="mp-seg-item mp-btn mp-ghost"
               aria-pressed={article}
-              disabled={platform === "x"}
+              disabled={!canCreatePost(platform, "article")}
               onClick={() => setArticle(true)}
             >
               {t("kindArticle")}
@@ -97,7 +83,7 @@ export function NewPostDialog({
           </span>
         </DialogHeader>
         <div className="mp-plat-grid">
-          {PLATFORMS.map((row) => {
+          {PLATFORM_LIST.map((row) => {
             const disabled = article && !canCreatePost(row.id, "article");
             return (
               <button
@@ -108,16 +94,16 @@ export function NewPostDialog({
                 disabled={disabled}
                 onClick={() => {
                   setPlatform(row.id);
-                  if (row.id === "x") setArticle(false);
+                  if (!canCreatePost(row.id, "article")) setArticle(false);
                 }}
               >
-                <PlatformIcon platform={row.id} label={t(PLATFORM_KEYS[row.id])} />
-                <span>{t(PLATFORM_KEYS[row.id])}</span>
+                <PlatformIcon platform={row.id} label={platformLabel(row.id)} />
+                <span>{platformLabel(row.id)}</span>
               </button>
             );
           })}
         </div>
-        <p className="mp-plat-rules">{t(HINT_KEYS[platform])}</p>
+        <p className="mp-plat-rules">{platformHint(platform)}</p>
         <div className="mp-field">
           <label htmlFor="mp-brief">{t("briefLabel")}</label>
           <textarea

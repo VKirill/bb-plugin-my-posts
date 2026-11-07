@@ -1,11 +1,12 @@
 import { useLayoutEffect, useRef } from "react";
 import { emptyTweet, type Tweet } from "../../shared/model";
-import { countChars, platformDef } from "../../shared/platforms";
+import { countChars, PLATFORMS } from "../../shared/platforms";
 import { t } from "../i18n";
 import { fitTextarea } from "./Editor";
 import { selectionLineRect } from "./layout";
 
-const MAX = platformDef("x").maxTweets ?? 25;
+const MAX = PLATFORMS.x.maxTweets ?? 0;
+const LIMIT = PLATFORMS.x.limit ?? 0;
 
 export function XTwins({
   tweets,
@@ -100,8 +101,8 @@ function Twin({
   onUpdateRu?: () => void;
 }) {
   const areaRef = useRef<HTMLTextAreaElement>(null);
-  const used = countChars("x", value);
-  const over = used > 280;
+  const used = countChars(PLATFORMS.x.id, value);
+  const over = used > LIMIT;
   useLayoutEffect(() => {
     if (areaRef.current !== null) fitTextarea(areaRef.current);
   }, [value]);
@@ -110,7 +111,7 @@ function Twin({
       <div className="mp-post-twin-head">
         <span className="mp-pill mp-pill-neutral">{lang === "en" ? t("langEn") : t("langRu")}</span>
         <span className="mp-post-grow" />
-        <span className={over ? "mp-pill mp-pill-danger" : "mp-pill mp-pill-muted"}>{used} / 280</span>
+        <span className={over ? "mp-pill mp-pill-danger" : "mp-pill mp-pill-muted"}>{used} / {LIMIT}</span>
       </div>
       <textarea
         ref={areaRef}

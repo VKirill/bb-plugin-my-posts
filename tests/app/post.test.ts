@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { post } from "../../src/app/i18n/post";
 import {
   chatBadge,
   clampChatWidth,
@@ -89,5 +90,12 @@ describe("selectionPrompt", () => {
     expect(selectionPrompt("shorter", "Hello there", "telegram")).toBe(
       "Make this shorter, keep the voice: «Hello there»",
     );
+  });
+});
+
+describe("copywriterTitle", () => {
+  it("uses Copywriter in EN and Копирайтер in RU", () => {
+    expect(post.en.copywriterTitle).toBe("Copywriter");
+    expect(post.ru.copywriterTitle).toBe("Копирайтер");
   });
 });

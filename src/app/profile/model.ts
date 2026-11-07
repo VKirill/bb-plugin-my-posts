@@ -1,5 +1,5 @@
-import type { Platform, Post, PostKind, Profile, ProfileStatus } from "../../shared/model";
-import { platformDef } from "../../shared/platforms";
+import { PLATFORMS_IDS, type Platform, type Post, type PostKind, type Profile, type ProfileStatus } from "../../shared/model";
+import { PLATFORMS } from "../../shared/platforms";
 import { profile as profileCopy } from "../i18n/profile";
 import type { Route } from "../routes";
 
@@ -18,13 +18,7 @@ export interface PortraitLayers {
   c: LayerState;
 }
 
-export interface RailCounts {
-  all: number;
-  telegram: number;
-  x: number;
-  dzen: number;
-  vk: number;
-}
+export type RailCounts = { all: number } & Record<Platform, number>;
 
 export const LAST_PROFILE_KEY = "my-posts:last-profile-id";
 
@@ -49,7 +43,8 @@ export function portraitLayers(profile: Profile): PortraitLayers {
 }
 
 export function railCounts(posts: Post[]): RailCounts {
-  const counts: RailCounts = { all: posts.length, telegram: 0, x: 0, dzen: 0, vk: 0 };
+  const counts = { all: posts.length } as RailCounts;
+  for (const id of PLATFORMS_IDS) counts[id] = 0;
   for (const post of posts) counts[post.platform] += 1;
   return counts;
 }
@@ -61,12 +56,13 @@ export function recentPosts(posts: Post[], n: number): Post[] {
 }
 
 export function canCreatePost(platform: Platform, kind: PostKind): boolean {
-  return !(platform === "x" && kind === "article");
+  return PLATFORMS[platform].kinds.includes(kind);
 }
 
 export function kindForNewPost(platform: Platform, article: boolean): PostKind {
-  if (article) return "article";
-  return platformDef(platform).defaultKind;
+  const kinds = PLATFORMS[platform].kinds;
+  if (article && kinds.includes("article")) return "article";
+  return kinds[0]!;
 }
 
 export function afterCreateRoute(profile: Profile): Route {

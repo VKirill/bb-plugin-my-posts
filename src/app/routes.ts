@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import { useBbNavigate } from "@get-bb/plugin-sdk/app";
+import { PLATFORMS_IDS, type Platform } from "../shared/model";
 
 export const PANEL_PATH = "my-posts";
 
-export type Platform = "telegram" | "x" | "dzen" | "vk";
+export type { Platform };
 
 export type ProfileTab = "overview" | "voice";
 
@@ -13,7 +14,7 @@ export type Route =
   | { kind: "profile"; profileId: string; tab?: ProfileTab; platform?: Platform }
   | { kind: "post"; postId: string };
 
-const PLATFORMS = new Set<string>(["telegram", "x", "dzen", "vk"]);
+const PLATFORM_IDS: ReadonlySet<string> = new Set(PLATFORMS_IDS);
 const TABS = new Set<string>(["overview", "voice"]);
 
 function decode(segment: string): string {
@@ -25,7 +26,7 @@ function decode(segment: string): string {
 }
 
 function isPlatform(value: string): value is Platform {
-  return PLATFORMS.has(value);
+  return PLATFORM_IDS.has(value);
 }
 
 function isTab(value: string): value is ProfileTab {

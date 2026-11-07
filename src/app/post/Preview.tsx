@@ -1,18 +1,9 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import type { Platform, Tweet } from "../../shared/model";
 import { readingMinutes } from "../../shared/platforms";
 import { t } from "../i18n";
 
-export function Preview({
-  platform,
-  title,
-  body,
-  tweets,
-  profileName,
-  previewLang,
-  onPreviewLang,
-  timeLabel,
-}: {
+type PreviewProps = {
   platform: Platform;
   title: string;
   body: string;
@@ -21,17 +12,22 @@ export function Preview({
   previewLang: "en" | "ru";
   onPreviewLang: (lang: "en" | "ru") => void;
   timeLabel: string;
-}) {
+};
+
+const PREVIEWS: Record<Platform, (props: PreviewProps) => ReactElement> = {
+  telegram: (props) => <TelegramPreview name={props.profileName} body={props.body} timeLabel={props.timeLabel} />,
+  x: (props) => (
+    <XPreview name={props.profileName} tweets={props.tweets} lang={props.previewLang} onLang={props.onPreviewLang} />
+  ),
+  dzen: (props) => <DzenPreview title={props.title} body={props.body} />,
+  vk: (props) => <VkPreview name={props.profileName} body={props.body} />,
+};
+
+export function Preview(props: PreviewProps) {
+  const PreviewForPlatform = PREVIEWS[props.platform];
   return (
     <div className="mp-col" style={{ display: "flex", flexDirection: "column", gap: "var(--mp-s3)" }}>
-      {platform === "telegram" ? (
-        <TelegramPreview name={profileName} body={body} timeLabel={timeLabel} />
-      ) : null}
-      {platform === "x" ? (
-        <XPreview name={profileName} tweets={tweets} lang={previewLang} onLang={onPreviewLang} />
-      ) : null}
-      {platform === "dzen" ? <DzenPreview title={title} body={body} /> : null}
-      {platform === "vk" ? <VkPreview name={profileName} body={body} /> : null}
+      <PreviewForPlatform {...props} />
       <p className="mp-post-rules" style={{ margin: 0, textAlign: "center" }}>
         {t("previewNote")}
       </p>
