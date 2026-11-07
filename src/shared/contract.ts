@@ -13,7 +13,7 @@ import {
   tweetSchema,
 } from "./model";
 
-export const MP_CHANGED = "my-posts:changed";
+export { MP_CHANGED } from "./model";
 
 export const kickoffLocaleSchema = z.enum(LOCALES);
 export type KickoffLocale = z.infer<typeof kickoffLocaleSchema>;

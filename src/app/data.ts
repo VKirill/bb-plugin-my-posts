@@ -5,8 +5,8 @@ import {
   useRpc,
   type PluginRealtimeConnectionState,
 } from "@get-bb/plugin-sdk/app";
-import { MP_CHANGED, type RpcContract } from "../shared/contract";
-import type { Platform } from "../shared/model";
+import type { RpcContract } from "../shared/contract";
+import { MP_CHANGED, type Platform } from "../shared/model";
 
 export function isReconnect(
   prev: PluginRealtimeConnectionState | null,
