@@ -46,6 +46,13 @@ export const rpcContract = defineRpcContract({
     input: z.object({ id: z.string().min(1) }),
     output: z.object({ id: z.string() }),
   },
+  profile_rebuild: {
+    input: z.object({
+      id: z.string().min(1),
+      locale: kickoffLocaleSchema.optional(),
+    }),
+    output: profileSchema,
+  },
   posts_list: {
     input: z.object({
       profileId: z.string().min(1),

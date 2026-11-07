@@ -5,7 +5,7 @@ import type { Post, Profile } from "../../shared/model";
 import { PLATFORM_LIST } from "../../shared/platforms";
 import { errorText, useMpRpc } from "../data";
 import { railCounts, recentPosts, initials } from "./model";
-import { deleteProfileText, rebuildPrompt, routeAfterProfileDelete } from "./manage";
+import { deleteProfileText, routeAfterProfileDelete } from "./manage";
 import { PlatformIcon, RefreshIcon } from "./icons";
 import { PostStatusPill, ProfileStatusPill } from "./pills";
 import { PortraitCard } from "./PortraitCard";
@@ -41,10 +41,17 @@ export function ProfileHome({
   const [error, setError] = useState<string | null>(null);
 
   async function rebuild(): Promise<void> {
-    if (profile.styleThreadId === null) return;
-    await rpc.call("chat_send", { threadId: profile.styleThreadId, text: rebuildPrompt(locale) });
-    onRebuild();
-    go({ kind: "profile", profileId: profile.id, tab: "voice" });
+    setBusy(true);
+    setError(null);
+    try {
+      await rpc.call("profile_rebuild", { id: profile.id, locale });
+      onRebuild();
+      go({ kind: "profile", profileId: profile.id, tab: "voice" });
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function confirmDelete(): Promise<void> {
@@ -77,7 +84,7 @@ export function ProfileHome({
         <button
           type="button"
           className="mp-btn"
-          disabled={profile.styleThreadId === null}
+          disabled={busy}
           onClick={() => void rebuild()}
         >
           <RefreshIcon />
@@ -126,6 +133,7 @@ export function ProfileHome({
           </button>
         </Popover>
       </div>
+      {error !== null ? <p className="mp-error">{error}</p> : null}
       <TabPanel id={active}>
         {active === "voice" ? (
           <div className="mp-chat-wrap">

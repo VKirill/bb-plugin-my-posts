@@ -2,12 +2,16 @@ import type { BbPluginApi, PluginAgentConfiguration } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 import type { KickoffLocale } from "../shared/contract";
 import type { Post, Profile } from "../shared/model";
-import { SESSION_KINDS } from "./kinds";
+import { profileRebuildKickoff, SESSION_KINDS } from "./kinds";
 import { sessionPolicyField } from "./session-policy";
 import type { Store } from "./store";
 
 export type SessionStarter = {
-  startProfileSession(profile: Profile, locale?: KickoffLocale): Promise<string>;
+  startProfileSession(
+    profile: Profile,
+    locale?: KickoffLocale,
+    mode?: "build" | "rebuild",
+  ): Promise<string>;
   startPostSession(post: Post, brief: string | null, locale?: KickoffLocale): Promise<string>;
 };
 
@@ -104,9 +108,13 @@ async function spawnArgs(
 
 export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
   return {
-    async startProfileSession(profile: Profile, locale: KickoffLocale = "en") {
+    async startProfileSession(profile: Profile, locale: KickoffLocale = "en", mode: "build" | "rebuild" = "build") {
+      const prompt =
+        mode === "rebuild"
+          ? profileRebuildKickoff(profile, locale)
+          : SESSION_KINDS.profile.kickoff({ profile }, locale);
       const thread = await bb.sdk.threads.spawn(
-        await spawnArgs(bb, store, `Style · ${profile.name}`, SESSION_KINDS.profile.kickoff({ profile }, locale), {
+        await spawnArgs(bb, store, `Style · ${profile.name}`, prompt, {
           kind: "profile",
           profileId: profile.id,
         }),

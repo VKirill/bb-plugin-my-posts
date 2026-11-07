@@ -60,6 +60,23 @@ export function registerRpc(
       return { id };
     },
 
+    profile_rebuild: async ({ id, locale }) => {
+      const old = store.getProfile(id);
+      const kickoffLocale: KickoffLocale = locale ?? "en";
+      const styleThreadId = await sessions.startProfileSession(old, kickoffLocale, "rebuild");
+      const profile = store.updateProfile(id, {
+        styleThreadId: styleThreadId === "" ? null : styleThreadId,
+        status: "building",
+      });
+      try {
+        await archiveHiddenThread(bb, old.styleThreadId);
+      } catch (cause) {
+        bb.log.warn(`MyPosts archive failed: ${String(cause)}`);
+      }
+      changed({ profileId: id });
+      return profile;
+    },
+
     posts_list: ({ profileId, platform }) => ({ posts: store.listPosts(profileId, platform) }),
 
     post_create: async ({ profileId, platform, kind, brief, locale }) => {
