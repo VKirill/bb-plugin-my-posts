@@ -9,6 +9,7 @@ const en = {
   statusPublished: "Published",
   settings: "Settings",
   language: "Language",
+  back: "Back",
 };
 
 const ru: Record<keyof typeof en, string> = {
@@ -22,6 +23,7 @@ const ru: Record<keyof typeof en, string> = {
   statusPublished: "Опубликован",
   settings: "Настройки",
   language: "Язык",
+  back: "Назад",
 };
 
 export const core = { en, ru };
