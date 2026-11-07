@@ -95,7 +95,7 @@ export function ProfileHome({
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           role="menu"
-          className="mp-switcher"
+          className="mp-menu"
           anchor={
             <button
               type="button"

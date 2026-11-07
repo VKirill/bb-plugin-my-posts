@@ -106,7 +106,10 @@ export function NewPostDialog({
           />
         </div>
         {error !== null ? <p className="mp-error">{error}</p> : null}
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:justify-end">
+          <button type="button" className="mp-btn mp-ghost" disabled={busy} onClick={() => onOpenChange(false)}>
+            {t("cancel")}
+          </button>
           <button type="button" className="mp-btn mp-accent" disabled={busy || !allowed} onClick={() => void start()}>
             {t("startPost")}
           </button>

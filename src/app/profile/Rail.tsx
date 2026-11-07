@@ -75,23 +75,27 @@ export function Rail({
             </button>
           ))}
           <div className="mp-menu-label">{t("posts")}</div>
-          {visiblePosts.map((post) => (
-            <button
-              key={post.id}
-              type="button"
-              className="mp-rail-post mp-nav-item"
-              aria-current={route.kind === "post" && route.postId === post.id ? "page" : undefined}
-              onClick={() => go({ kind: "post", postId: post.id })}
-            >
-              <PlatformIcon platform={post.platform} />
-              <span className="mp-grow">
-                <span className="mp-rail-post-title mp-truncate">{post.title}</span>
-                <span className="mp-meta">
-                  <PostStatusPill status={post.status} />
+          {selectedPlatform !== undefined && visiblePosts.length === 0 ? (
+            <p className="mp-meta mp-note">{t("emptyPlatformPosts")}</p>
+          ) : (
+            visiblePosts.map((post) => (
+              <button
+                key={post.id}
+                type="button"
+                className="mp-rail-post mp-nav-item"
+                aria-current={route.kind === "post" && route.postId === post.id ? "page" : undefined}
+                onClick={() => go({ kind: "post", postId: post.id })}
+              >
+                <PlatformIcon platform={post.platform} />
+                <span className="mp-grow">
+                  <span className="mp-rail-post-title mp-truncate">{post.title}</span>
+                  <span className="mp-meta">
+                    <PostStatusPill status={post.status} />
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       ) : (
         <p className="mp-meta mp-note">{creating ? t("createRailNote") : t("emptyRailNote")}</p>
