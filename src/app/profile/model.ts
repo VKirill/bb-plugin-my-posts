@@ -2,6 +2,7 @@ import { PLATFORMS_IDS, type Platform, type Post, type PostKind, type Profile, t
 import { PLATFORMS } from "../../shared/platforms";
 import { profile as profileCopy } from "../i18n/profile";
 import type { Route } from "../routes";
+import { readStored, STORAGE_KEYS, writeStored } from "../storage";
 
 export type ProfileLocale = "en" | "ru";
 
@@ -20,7 +21,7 @@ export interface PortraitLayers {
 
 export type RailCounts = { all: number } & Record<Platform, number>;
 
-export const LAST_PROFILE_KEY = "my-posts:last-profile-id";
+export const LAST_PROFILE_KEY = STORAGE_KEYS.lastProfile;
 
 const VOICE_HEADING = /##\s*.*(голос|voice)/iu;
 const RULES_HEADING = /##\s*.*(правил|writing rules|generation rules)/iu;
@@ -232,21 +233,13 @@ export function sourceLine(source: string, locale: ProfileLocale): string {
 }
 
 export function rememberProfileId(id: string): void {
-  try {
-    localStorage.setItem(LAST_PROFILE_KEY, id);
-  } catch {
-    // storage unavailable
-  }
+  writeStored(LAST_PROFILE_KEY, id);
 }
 
 export function lastProfileId(profiles: Profile[]): string | null {
   if (profiles.length === 0) return null;
-  try {
-    const stored = localStorage.getItem(LAST_PROFILE_KEY);
-    if (stored !== null && profiles.some((profile) => profile.id === stored)) return stored;
-  } catch {
-    // storage unavailable
-  }
+  const stored = readStored(LAST_PROFILE_KEY);
+  if (stored !== null && profiles.some((profile) => profile.id === stored)) return stored;
   return profiles[0]!.id;
 }
 

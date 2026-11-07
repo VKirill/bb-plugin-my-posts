@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { platformHint, platformLabel, t, useLocale } from "../i18n";
-import { useMpRpc } from "../data";
+import { errorText, useMpRpc } from "../data";
 import { useGo } from "../routes";
 import type { Platform } from "../../shared/model";
 import { PLATFORM_LIST } from "../../shared/platforms";
@@ -51,7 +51,7 @@ export function NewPostDialog({
       onOpenChange(false);
       go({ kind: "post", postId: post.id });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorText(cause));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@ import type { Platform, Tweet } from "../../shared/model";
 import { readingMinutes } from "../../shared/platforms";
 import { t } from "../i18n";
 import { Toggle } from "../ui/Segmented";
+import { initials } from "../profile/model";
 
 type PreviewProps = {
   platform: Platform;
@@ -123,12 +124,6 @@ function VkPreview({ name, body }: { name: string; body: string }) {
       ))}
     </article>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/u).filter(Boolean);
-  const letters = parts.slice(0, 2).map((part) => [...part][0] ?? "").join("");
-  return letters.toUpperCase() || "?";
 }
 
 function splitDzen(body: string): { kind: "h2" | "p"; text: string }[] {

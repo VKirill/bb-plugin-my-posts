@@ -1,8 +1,9 @@
 import { t } from "../i18n";
 import type { Platform, Post, Proposal } from "../../shared/model";
 import { COMPACT_AT } from "../ui/breakpoints";
+import { readStored, STORAGE_KEYS, writeStored } from "../storage";
 
-export const CHAT_WIDTH_KEY = "my-posts.chatWidth";
+export const CHAT_WIDTH_KEY = STORAGE_KEYS.chatWidth;
 export const DIVIDER_PX = 9;
 export const MIN_CHAT = 320;
 export const MAX_CHAT = 640;
@@ -170,20 +171,12 @@ export function selectionPrompt(action: SelectionAction, selection: string, _pla
 }
 
 export function readStoredChatWidth(): number | null {
-  try {
-    const raw = globalThis.localStorage?.getItem(CHAT_WIDTH_KEY);
-    if (raw === null || raw === undefined) return null;
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : null;
-  } catch {
-    return null;
-  }
+  const raw = readStored(CHAT_WIDTH_KEY);
+  if (raw === null) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }
 
 export function writeStoredChatWidth(width: number): void {
-  try {
-    globalThis.localStorage?.setItem(CHAT_WIDTH_KEY, String(width));
-  } catch {
-    // storage unavailable
-  }
+  writeStored(CHAT_WIDTH_KEY, String(width));
 }

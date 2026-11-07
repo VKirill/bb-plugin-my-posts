@@ -1,12 +1,15 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
 import { useEffect, useRef, useState } from "react";
-import type { Post, PostStatus, Tweet } from "../../shared/model";
+import type { Post, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
 import { platformLabel, platformRulesLine, t, useLocale } from "../i18n";
 import { PlatformIcon } from "../profile/icons";
+import { initials } from "../profile/model";
+import { PostStatusPill } from "../profile/pills";
 import { useGo } from "../routes";
 import { platformDef } from "../../shared/platforms";
 import { PostScreenContext } from "./context";
+import { mergeServerDraft, type Draft, type DraftField } from "./draft";
 import { Editor } from "./Editor";
 import {
   chatBadge,
@@ -22,7 +25,7 @@ import {
   type SelectionAction,
   type SplitMode,
 } from "./layout";
-import { Preview, initials } from "./Preview";
+import { Preview } from "./Preview";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { XTwins } from "./XTwins";
 import { Popover } from "../ui/Popover";
@@ -30,19 +33,7 @@ import { TabPanel, Tabs, Toggle } from "../ui/Segmented";
 import { COMPACT_AT } from "../ui/breakpoints";
 import "./post.css";
 
-const STATUS_PILL: Record<PostStatus, string> = {
-  draft: "mp-pill-muted",
-  writing: "mp-pill-info",
-  ready: "mp-pill-success",
-  published: "mp-pill-neutral",
-};
-
-const STATUS_KEY: Record<PostStatus, "statusDraft" | "statusWriting" | "statusReady" | "statusPublished"> = {
-  draft: "statusDraft",
-  writing: "statusWriting",
-  ready: "statusReady",
-  published: "statusPublished",
-};
+const DRAFT_FIELDS: DraftField[] = ["title", "body", "tweets"];
 
 export function PostPage({ postId }: { postId: string }) {
   useLocale();
@@ -63,7 +54,7 @@ export function PostPage({ postId }: { postId: string }) {
   if (query.data === null) return <p className="mp-post-rules">{t("loading")}</p>;
   return (
     <PostScreenContext.Provider value={{ post: query.data.post, proposals: query.data.proposals, refetch: query.refetch }}>
-      <PostWorkspace post={query.data.post} proposals={query.data.proposals} />
+      <PostWorkspace key={query.data.post.id} post={query.data.post} proposals={query.data.proposals} />
     </PostScreenContext.Provider>
   );
 }
@@ -75,9 +66,14 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   const posts = usePosts(post.profileId);
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const pending = useRef<Partial<{ title: string; body: string; tweets: Tweet[] }>>({});
+  const pending = useRef<Partial<Draft>>({});
+  const inFlight = useRef<Partial<Draft>>({});
   const timer = useRef<number | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const seenId = useRef<string | null>(null);
   const drag = useRef<{ startX: number; startW: number } | null>(null);
+  const localRef = useRef<Draft>({ title: post.title, body: post.body, tweets: post.tweets });
+  const flushRef = useRef<() => Promise<boolean>>(async () => true);
 
   const [paneWidth, setPaneWidth] = useState(1200);
   const [chatW, setChatW] = useState(DEFAULT_CHAT);
@@ -97,11 +93,30 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   const split: SplitMode = splitMode(paneWidth);
   const profileName = profile.data?.name ?? "";
   const badge = chatBadge({ tweets }, proposals);
+  localRef.current = { title, body, tweets };
+
+  function dirtyFields(): Set<DraftField> {
+    const dirty = new Set<DraftField>();
+    for (const field of DRAFT_FIELDS) {
+      if (pending.current[field] !== undefined || inFlight.current[field] !== undefined) dirty.add(field);
+    }
+    return dirty;
+  }
 
   useEffect(() => {
-    setTitle(post.title);
-    setBody(post.body);
-    setTweets(post.tweets);
+    if (seenId.current !== post.id) {
+      seenId.current = post.id;
+      pending.current = {};
+      inFlight.current = {};
+      setTitle(post.title);
+      setBody(post.body);
+      setTweets(post.tweets);
+      return;
+    }
+    const merged = mergeServerDraft(localRef.current, { title: post.title, body: post.body, tweets: post.tweets }, dirtyFields());
+    setTitle(merged.title);
+    setBody(merged.body);
+    setTweets(merged.tweets);
   }, [post.id, post.updatedAt]);
 
   useEffect(() => {
@@ -121,7 +136,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     return () => observer.disconnect();
   }, []);
 
-  function schedule(patch: Partial<{ title: string; body: string; tweets: Tweet[] }>): void {
+  function schedule(patch: Partial<Draft>): void {
     pending.current = { ...pending.current, ...patch };
     if (timer.current !== null) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
@@ -129,21 +144,39 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     }, 600);
   }
 
-  async function flush(): Promise<void> {
+  async function flush(): Promise<boolean> {
     if (timer.current !== null) {
       window.clearTimeout(timer.current);
       timer.current = null;
     }
     const patch = pending.current;
     pending.current = {};
-    if (patch.title === undefined && patch.body === undefined && patch.tweets === undefined) return;
+    if (patch.title === undefined && patch.body === undefined && patch.tweets === undefined) return true;
+    inFlight.current = { ...inFlight.current, ...patch };
     try {
       await rpc.call("post_update", { id: post.id, ...patch });
+      for (const field of DRAFT_FIELDS) {
+        if (field in patch) delete inFlight.current[field];
+      }
       setSaveError(null);
+      return true;
     } catch (cause) {
+      pending.current = { ...patch, ...pending.current };
+      for (const field of DRAFT_FIELDS) {
+        if (field in patch) delete inFlight.current[field];
+      }
       setSaveError(errorText(cause));
+      return false;
     }
   }
+  flushRef.current = flush;
+
+  useEffect(() => {
+    return () => {
+      void flushRef.current();
+      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   function setChatWidth(next: number): void {
     const clamped = clampChatWidth(paneWidth, next);
@@ -181,9 +214,13 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     try {
       await navigator.clipboard.writeText(`«${sel.text}»`);
       setToast(t("quoteCopied"));
-      window.setTimeout(() => setToast(null), 2400);
+      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+      toastTimer.current = window.setTimeout(() => {
+        setToast(null);
+        toastTimer.current = null;
+      }, 2400);
     } catch {
-      setToast(t("quoteCopied"));
+      setToast(t("copyFailed"));
     }
     setSel(null);
     setFocusChat((n) => n + 1);
@@ -213,7 +250,8 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   }
 
   async function markReady(): Promise<void> {
-    await flush();
+    const saved = await flush();
+    if (!saved) return;
     try {
       await rpc.call("post_update", { id: post.id, status: "ready" });
       setSaveError(null);
@@ -323,7 +361,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
                 <PlatformIcon platform={row.platform} />
               </span>
               <span className="mp-post-grow">{row.title}</span>
-              <span className={`mp-pill ${STATUS_PILL[row.status]}`}>{t(STATUS_KEY[row.status])}</span>
+              <PostStatusPill status={row.status} />
             </button>
           ))}
         </Popover>
@@ -337,7 +375,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
                 <PlatformIcon platform={post.platform} />
               </span>
               {showLabel ? <span className="mp-post-platname">{label}</span> : null}
-              <span className={`mp-pill ${STATUS_PILL[post.status]}`}>{t(STATUS_KEY[post.status])}</span>
+              <PostStatusPill status={post.status} />
               <span className="mp-post-grow" />
               <Toggle
                 label={t("editor")}
@@ -458,13 +496,13 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
           </div>
           <div className="mp-post-chat-stage">
             <div className="mp-post-chips">
-              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipShorterPrompt"))}>
+              <button type="button" className="mp-post-chip" disabled={post.threadId === null} onClick={() => void sendChat(t("chipShorterPrompt"))}>
                 {t("chipShorter")}
               </button>
-              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipHooksPrompt"))}>
+              <button type="button" className="mp-post-chip" disabled={post.threadId === null} onClick={() => void sendChat(t("chipHooksPrompt"))}>
                 {t("chipHooks")}
               </button>
-              <button type="button" className="mp-post-chip" onClick={() => void sendChat(t("chipTabooPrompt"))}>
+              <button type="button" className="mp-post-chip" disabled={post.threadId === null} onClick={() => void sendChat(t("chipTabooPrompt"))}>
                 {t("chipTaboo")}
               </button>
             </div>

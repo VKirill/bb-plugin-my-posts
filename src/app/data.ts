@@ -34,17 +34,26 @@ export function useQuery<T>(
   key: string,
   match: { profileId?: string; postId?: string } | null,
   load: () => Promise<T>,
+  enabled = true,
 ): QueryState<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const loadRef = useRef(load);
   loadRef.current = load;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const generation = useRef(0);
   const conn = useRealtimeConnectionState();
   const prevConn = useRef<PluginRealtimeConnectionState | null>(null);
 
   const refetch = useCallback(() => {
+    if (!enabledRef.current) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     const current = ++generation.current;
     setLoading(true);
     loadRef.current().then(
@@ -65,7 +74,7 @@ export function useQuery<T>(
   useEffect(() => {
     setData(null);
     refetch();
-  }, [key, refetch]);
+  }, [key, refetch, enabled]);
 
   useEffect(() => {
     if (isReconnect(prevConn.current, conn)) refetch();
@@ -73,6 +82,7 @@ export function useQuery<T>(
   }, [conn, refetch]);
 
   useRealtime(MP_CHANGED, (payload) => {
+    if (!enabledRef.current) return;
     if (match === null) {
       refetch();
       return;
@@ -99,15 +109,27 @@ export function useProfiles() {
   return useQuery("profiles", null, () => rpc.call("profiles_list", null));
 }
 
-export function useProfile(id: string) {
+export function useProfile(id: string | null) {
   const rpc = useMpRpc();
-  return useQuery(`profile:${id}`, { profileId: id }, () => rpc.call("profile_get", { id }));
+  return useQuery(
+    id === null ? "profile:" : `profile:${id}`,
+    id === null ? { profileId: "" } : { profileId: id },
+    () => rpc.call("profile_get", { id: id as string }),
+    id !== null,
+  );
 }
 
-export function usePosts(profileId: string, platform?: Platform) {
+export function usePosts(profileId: string | null, platform?: Platform) {
   const rpc = useMpRpc();
-  return useQuery(`posts:${profileId}:${platform ?? ""}`, { profileId }, () =>
-    rpc.call("posts_list", platform === undefined ? { profileId } : { profileId, platform }),
+  return useQuery(
+    `posts:${profileId ?? ""}:${platform ?? ""}`,
+    profileId === null ? { profileId: "" } : { profileId },
+    () =>
+      rpc.call(
+        "posts_list",
+        platform === undefined ? { profileId: profileId as string } : { profileId: profileId as string, platform },
+      ),
+    profileId !== null,
   );
 }
 
