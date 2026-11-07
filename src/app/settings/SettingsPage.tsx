@@ -1,12 +1,22 @@
 import { DEFAULT_SETTINGS, type Language } from "../../shared/model";
 import { t, useLocale, setLanguagePreference } from "../i18n";
 import { useMpRpc, useSettings } from "../data";
+import { useGo } from "../routes";
 import { Toggle } from "../ui/Segmented";
 import { AgentModel } from "./AgentModel";
 import "../profile/profile.css";
 
+function useGoHome() {
+  try {
+    return useGo();
+  } catch {
+    return () => undefined;
+  }
+}
+
 export function SettingsPage() {
   useLocale();
+  const go = useGoHome();
   const rpc = useMpRpc();
   const settings = useSettings();
   const language = settings.data?.language ?? DEFAULT_SETTINGS.language;
@@ -19,6 +29,13 @@ export function SettingsPage() {
   return (
     <div className="mp-centre">
       <div className="mp-head">
+        <button
+          type="button"
+          className="mp-btn"
+          onClick={() => go({ kind: "home" })}
+        >
+          {t("back")}
+        </button>
         <h1 className="mp-h1">{t("settings")}</h1>
       </div>
       <div className="mp-body">
