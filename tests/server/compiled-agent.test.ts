@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import Database from "better-sqlite3";
 import { describe, expect, it, vi } from "vitest";
 import { compiledAgentField, compiledMainAgent } from "../../src/server/compiled-agent";
@@ -20,10 +19,6 @@ const ALLOWED_KEYS = [
 
 const TOOLS = ["Bash", "Read", "Write", "Edit", "Skill"];
 
-function hashPrompt(prompt: string): string {
-  return createHash("sha256").update(prompt).digest("hex");
-}
-
 describe("compiledMainAgent", () => {
   it("builds a copywriter profile for post sessions", () => {
     const agent = compiledMainAgent("post");
@@ -38,7 +33,6 @@ describe("compiledMainAgent", () => {
     expect(agent.prompt).toContain("mp_profile_get");
     expect(agent.prompt).toContain("mp_post_write");
     expect(agent.prompt).toContain("mp_propose_edit");
-    expect(agent.sourceHash).toBe(hashPrompt(agent.prompt));
     expect(agent.sourceHash).toMatch(/^[a-f0-9]{64}$/u);
   });
 
@@ -49,7 +43,6 @@ describe("compiledMainAgent", () => {
     expect(agent.tools).toEqual(TOOLS);
     expect(agent.prompt).toContain("mp_fetch_telegram");
     expect(agent.prompt).toContain("mp_profile_save");
-    expect(agent.sourceHash).toBe(hashPrompt(agent.prompt));
   });
 });
 

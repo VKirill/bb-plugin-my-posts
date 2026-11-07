@@ -15,8 +15,31 @@ export type CompiledMainAgent = {
   mcpServers: string[];
 };
 
-function hashPrompt(prompt: string): string {
-  return createHash("sha256").update(prompt).digest("hex");
+function digestSource(
+  profile: Omit<CompiledMainAgent, "sourceHash"> & { disallowedTools?: string[] },
+): string {
+  const ordered = {
+    id: profile.id,
+    sourceVersion: profile.sourceVersion,
+    description: profile.description,
+    prompt: profile.prompt,
+    ...(profile.tools ? { tools: profile.tools } : {}),
+    ...(profile.disallowedTools ? { disallowedTools: profile.disallowedTools } : {}),
+    ...(profile.skills ? { skills: profile.skills } : {}),
+    ...(profile.mcpServers ? { mcpServers: profile.mcpServers } : {}),
+  };
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, nested]) => [key, canonical(nested)]),
+      );
+    }
+    return value;
+  };
+  return createHash("sha256").update(JSON.stringify(canonical(ordered))).digest("hex");
 }
 
 function profilePrompt(): string {
@@ -49,10 +72,9 @@ function postPrompt(): string {
 
 export function compiledMainAgent(kind: SessionKind): CompiledMainAgent {
   const prompt = kind === "profile" ? profilePrompt() : postPrompt();
-  return {
+  const body = {
     id: kind === "profile" ? "mp-style-portrait" : "mp-copywriter",
     sourceVersion: SOURCE_VERSION,
-    sourceHash: hashPrompt(prompt),
     description:
       kind === "profile"
         ? "MyPosts style-portrait agent for one profile."
@@ -62,6 +84,7 @@ export function compiledMainAgent(kind: SessionKind): CompiledMainAgent {
     skills: [...SESSION_KINDS[kind].skills],
     mcpServers: ["bb-bridge"],
   };
+  return { ...body, sourceHash: digestSource(body) };
 }
 
 export function compiledAgentField(
