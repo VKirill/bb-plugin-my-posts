@@ -1,6 +1,8 @@
 import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 import {
+  LOCALES,
+  languageSchema,
   platformSchema,
   postKindSchema,
   postSchema,
@@ -11,9 +13,9 @@ import {
   tweetSchema,
 } from "./model";
 
-export { MP_CHANGED } from "./events";
+export const MP_CHANGED = "my-posts:changed";
 
-export const kickoffLocaleSchema = z.enum(["ru", "en"]);
+export const kickoffLocaleSchema = z.enum(LOCALES);
 export type KickoffLocale = z.infer<typeof kickoffLocaleSchema>;
 
 export const rpcContract = defineRpcContract({
@@ -61,6 +63,10 @@ export const rpcContract = defineRpcContract({
     }),
     output: postSchema,
   },
+  post_delete: {
+    input: z.object({ id: z.string().min(1) }),
+    output: z.object({ id: z.string() }),
+  },
   post_get: {
     input: z.object({ id: z.string().min(1) }),
     output: z.object({
@@ -105,6 +111,7 @@ export const rpcContract = defineRpcContract({
       providerId: z.string().min(1).optional(),
       model: z.string().min(1).optional(),
       projectId: z.string().nullable().optional(),
+      language: languageSchema.optional(),
     }),
     output: settingsSchema,
   },

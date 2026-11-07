@@ -133,6 +133,7 @@ describe("registerRpc", () => {
       providerId: "claude-code",
       model: "claude-opus-5-5",
       projectId: null,
+      language: "auto",
     });
     expect(publish).not.toHaveBeenCalled();
   });

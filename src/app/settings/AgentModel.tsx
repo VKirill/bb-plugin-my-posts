@@ -3,7 +3,7 @@ import { t } from "../i18n";
 import { useMpRpc, useSettings } from "../data";
 import { fromPickerValue, toPickerValue } from "./model-value";
 
-const FALLBACK = { providerId: "claude-code", model: "claude-opus-5-5", projectId: null } as const;
+const FALLBACK = { providerId: "claude-code", model: "claude-opus-5-5", projectId: null, language: "auto" } as const;
 
 export function AgentModel() {
   const rpc = useMpRpc();

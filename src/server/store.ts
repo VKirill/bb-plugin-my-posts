@@ -367,10 +367,16 @@ export class Store {
     const rows = this.db.prepare("SELECT key, value FROM settings").all() as Array<{ key: string; value: string }>;
     const map = new Map(rows.map((row) => [row.key, row.value]));
     const projectRaw = map.get("projectId");
+    const languageRaw = map.get("language");
+    const language =
+      languageRaw === "auto" || languageRaw === "ru" || languageRaw === "en"
+        ? languageRaw
+        : DEFAULT_SETTINGS.language;
     return {
       providerId: map.get("providerId") ?? DEFAULT_SETTINGS.providerId,
       model: map.get("model") ?? DEFAULT_SETTINGS.model,
       projectId: projectRaw === undefined ? DEFAULT_SETTINGS.projectId : (JSON.parse(projectRaw) as string | null),
+      language,
     };
   }
 
@@ -382,6 +388,7 @@ export class Store {
     upsert.run("providerId", next.providerId);
     upsert.run("model", next.model);
     upsert.run("projectId", JSON.stringify(next.projectId));
+    upsert.run("language", next.language);
     return this.getSettings();
   }
 }

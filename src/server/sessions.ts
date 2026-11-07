@@ -1,95 +1,27 @@
 import type { BbPluginApi, PluginAgentConfiguration } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 import type { KickoffLocale } from "../shared/contract";
-import type { Platform, Post, PostKind, Profile } from "../shared/model";
-import { platformRules } from "../shared/platforms";
-import type { SessionStarter } from "./rpc";
+import type { Post, Profile } from "../shared/model";
+import { SESSION_KINDS } from "./kinds";
 import { sessionPolicyField } from "./session-policy";
 import type { Store } from "./store";
-import { POST_TOOLS, PROFILE_TOOLS } from "./tools";
+
+export type SessionStarter = {
+  startProfileSession(profile: Profile, locale?: KickoffLocale): Promise<string>;
+  startPostSession(post: Post, brief: string | null, locale?: KickoffLocale): Promise<string>;
+};
+
+export {
+  postInstructions,
+  postKickoff,
+  profileInstructions,
+  profileKickoff,
+} from "./kinds";
 
 export const sessionMetadataSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("profile"), profileId: z.string().min(1) }),
   z.object({ kind: z.literal("post"), postId: z.string().min(1) }),
 ]);
-
-const PLATFORM_KICKOFF: Record<Platform, { en: string; ru: string }> = {
-  telegram: { en: "Telegram", ru: "Telegram" },
-  x: { en: "X", ru: "X" },
-  dzen: { en: "Dzen", ru: "Дзена" },
-  vk: { en: "VK", ru: "ВКонтакте" },
-};
-
-function postKindKickoff(kind: PostKind, locale: KickoffLocale): string {
-  if (locale === "ru") {
-    if (kind === "article") return "статью";
-    if (kind === "thread") return "тред";
-    return "пост";
-  }
-  if (kind === "article") return "article";
-  if (kind === "thread") return "thread";
-  return "post";
-}
-
-export function profileKickoff(profile: Profile, locale: KickoffLocale = "en"): string {
-  const name = profile.name;
-  const sourceTrim = profile.source.trim();
-  if (locale === "ru") {
-    const sourcePart =
-      sourceTrim === ""
-        ? "Источник: попроси у меня ссылку на канал или тексты"
-        : `Источник: ${sourceTrim}`;
-    return `Собери портрет стиля профиля «${name}». ${sourcePart}`;
-  }
-  const sourcePart =
-    sourceTrim === ""
-      ? "Source: ask the user for a channel link or texts"
-      : `Source: ${sourceTrim}`;
-  return `Build the style portrait of profile «${name}». ${sourcePart}`;
-}
-
-export function postKickoff(
-  post: Post,
-  profile: Profile,
-  brief: string | null,
-  locale: KickoffLocale = "en",
-): string {
-  const name = profile.name;
-  const platform = PLATFORM_KICKOFF[post.platform][locale];
-  const kind = postKindKickoff(post.kind, locale);
-  const briefTrim = brief === null ? "" : brief.trim();
-  if (locale === "ru") {
-    const base = `Напиши ${kind} для ${platform} в голосе профиля «${name}»`;
-    return briefTrim === "" ? base : `${base}. Бриф: ${briefTrim}`;
-  }
-  const base = `Write a ${platform} ${kind} in the voice of profile «${name}».`;
-  return briefTrim === "" ? base : `${base} Brief: ${briefTrim}`;
-}
-
-export function profileInstructions(profile: Profile): string {
-  return [
-    "You are the style analyst of MyPosts.",
-    `You work on profile ${profile.id} (${profile.name}).`,
-    "Working files go to this thread's working storage.",
-    "Use the style-portrait skill. For a public Telegram channel call mp_fetch_telegram and save the corpus with style.py corpus.",
-    "When done call mp_profile_save with style.md, metrics json and 4–6 short voice traits. The plugin database is the source of truth.",
-    "Answer the user in the language of their message.",
-  ].join(" ");
-}
-
-export function postInstructions(post: Post, profile: Profile): string {
-  const lines = [
-    "You are the copywriter of MyPosts.",
-    `You work on post ${post.id} for profile ${profile.name} (${profile.id}).`,
-    "Use the writing-in-style skill. Load the profile with mp_profile_get, write the draft with mp_post_write, and propose every later change with mp_propose_edit.",
-    platformRules(post.platform),
-    "After the first draft, never rewrite the post silently: every change is an mp_propose_edit, and you put its ::mp-edit{id=…} line on its own line in your reply.",
-  ];
-  if (post.platform === "x") {
-    lines.push("Each tweet needs English and Russian versions as {en, ru}.");
-  }
-  return lines.join(" ");
-}
 
 export function agentConfiguration(
   store: Store,
@@ -101,18 +33,20 @@ export function agentConfiguration(
   try {
     if (meta.data.kind === "profile") {
       const profile = store.getProfile(meta.data.profileId);
+      const kind = SESSION_KINDS.profile;
       return {
-        tools: [...PROFILE_TOOLS],
-        skills: ["style-portrait"],
-        instructions: profileInstructions(profile),
+        tools: [...kind.tools],
+        skills: [...kind.skills],
+        instructions: kind.instructions({ profile }),
       };
     }
     const post = store.getPost(meta.data.postId);
     const profile = store.getProfile(post.profileId);
+    const kind = SESSION_KINDS.post;
     return {
-      tools: [...POST_TOOLS],
-      skills: ["writing-in-style", "style-portrait"],
-      instructions: postInstructions(post, profile),
+      tools: [...kind.tools],
+      skills: [...kind.skills],
+      instructions: kind.instructions({ profile, post }),
     };
   } catch {
     return none;
@@ -172,7 +106,7 @@ export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
   return {
     async startProfileSession(profile: Profile, locale: KickoffLocale = "en") {
       const thread = await bb.sdk.threads.spawn(
-        await spawnArgs(bb, store, `Style · ${profile.name}`, profileKickoff(profile, locale), {
+        await spawnArgs(bb, store, `Style · ${profile.name}`, SESSION_KINDS.profile.kickoff({ profile }, locale), {
           kind: "profile",
           profileId: profile.id,
         }),
@@ -186,7 +120,7 @@ export function createSessions(bb: BbPluginApi, store: Store): SessionStarter {
           bb,
           store,
           `${post.platform} · ${post.title}`,
-          postKickoff(post, profile, brief, locale),
+          SESSION_KINDS.post.kickoff({ profile, post, brief }, locale),
           {
             kind: "post",
             postId: post.id,

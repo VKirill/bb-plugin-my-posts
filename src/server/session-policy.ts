@@ -1,4 +1,6 @@
-export type SessionKind = "profile" | "post";
+import { SESSION_KINDS, type SessionKind } from "./kinds";
+
+export type { SessionKind };
 
 type Filter = { mode: "allow" | "deny"; names: string[] };
 
@@ -49,8 +51,7 @@ export function mpSessionPolicy(kind: SessionKind): MpSessionPolicy {
     },
     skills: {
       mode: "allow",
-      names:
-        kind === "profile" ? ["style-portrait"] : ["writing-in-style", "style-portrait"],
+      names: [...SESSION_KINDS[kind].skills],
     },
     mcpServers: { mode: "allow", names: ["bb-bridge"] },
     nativePlugins: { mode: "allow", names: [] },

@@ -6,6 +6,7 @@ const settings: Settings = {
   providerId: "claude-code",
   model: "claude-opus-5-5",
   projectId: null,
+  language: "auto",
 };
 
 describe("toPickerValue", () => {
