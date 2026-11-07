@@ -42,7 +42,6 @@ export function defaultChatWidth(paneWidth: number): number {
   return paneWidth < COMPACT_CHAT_AT ? DEFAULT_CHAT_NARROW : DEFAULT_CHAT;
 }
 
-/** Keep the chat between 320 and 640px and the post column at 480px or more. */
 export function clampChatWidth(paneWidth: number, requested: number): number {
   const leftover = paneWidth - DIVIDER_PX - MIN_POST;
   const maxChat = Math.min(MAX_CHAT, leftover);
@@ -88,7 +87,6 @@ const MIRROR_STYLES = [
   "overflowWrap",
 ] as const;
 
-/** Caret / line box at `index` in a textarea (mirror-div measurement). */
 export function selectionLineRect(textarea: HTMLTextAreaElement, index = textarea.selectionStart): DOMRect {
   const taRect = textarea.getBoundingClientRect();
   const style = getComputedStyle(textarea);
@@ -117,7 +115,6 @@ export function selectionLineRect(textarea: HTMLTextAreaElement, index = textare
   return new DOMRect(mark.left, mark.top, Math.max(mark.width, 1), lineHeight);
 }
 
-/** Place the selection toolbar near the selection, clamped inside the editor card (and the viewport when given). */
 export function toolbarPosition(
   anchorRect: BoxRect,
   columnRect: BoxRect,

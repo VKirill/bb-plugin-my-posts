@@ -75,7 +75,6 @@ export function routePath(route: Route): string {
   }
 }
 
-/** Navigate inside the MyPosts panel. */
 export function useGo() {
   const navigate = useBbNavigate();
   return useCallback(

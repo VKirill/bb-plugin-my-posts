@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { metricRows, sourceLine } from "../../src/app/profile/model";
-import { profile } from "../../src/app/i18n/profile";
 
 describe("metricRows", () => {
   it("formats corpus, sentence length and median post length in Russian", () => {
@@ -32,9 +31,3 @@ describe("sourceLine", () => {
   });
 });
 
-describe("rebuild copy", () => {
-  it("names the rebuild action as a portrait refresh", () => {
-    expect(profile.en.rebuild).toEqual("Rebuild portrait");
-    expect(profile.ru.rebuild).toEqual("Обновить портрет");
-  });
-});

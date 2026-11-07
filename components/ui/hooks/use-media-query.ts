@@ -1,8 +1,5 @@
 import { useSyncExternalStore } from "react";
 
-export const DARK_COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)";
-export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
 type MediaQueryRef = {
   mql: MediaQueryList;
   subscribe: (notify: () => void) => () => void;
@@ -63,8 +60,4 @@ export function useMediaQuery(query: string): boolean {
     () => getMediaQuerySnapshot(query),
     () => false,
   );
-}
-
-export function usePrefersReducedMotion(): boolean {
-  return useMediaQuery(REDUCED_MOTION_QUERY);
 }

@@ -1,6 +1,5 @@
 import type { Settings } from "../../shared/model";
 
-/** Picker value the SDK component requires; reasoning is not stored in settings. */
 export type PickerValue = {
   providerId: string;
   model: string;

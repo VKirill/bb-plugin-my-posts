@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-my-posts",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "type": "module",
   "engines": {
     "bb": ">=0.48",
@@ -33,7 +33,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "better-sqlite3": "^12.0.0",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.11.9",
     "tailwind-merge": "^3.4.0",
