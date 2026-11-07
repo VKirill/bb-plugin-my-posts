@@ -162,6 +162,7 @@
   z-index: 30;
   top: calc(100% + 4px);
   right: 0;
+  left: auto;
   width: 340px;
   max-width: min(340px, calc(100vw - 32px));
   max-height: min(70vh, 480px);
@@ -815,19 +816,60 @@
 
   .mp-post-page-inner {
     padding: var(--mp-s3) var(--mp-s3) var(--mp-pad-page);
+    padding-bottom: calc(56px + var(--mp-s3) + env(safe-area-inset-bottom));
   }
 
   .mp-post-edcard {
     padding: var(--mp-gap);
   }
 
+  .mp-post-bar .mp-btn,
+  .mp-post-crumb-btn,
+  .mp-seg-sm .mp-seg-item,
+  .mp-post-edtools button,
+  .mp-post-foot button,
+  .mp-post-sel button {
+    min-height: 40px;
+  }
+
+  .mp-post-bar .mp-btn.icon,
+  .mp-post-crumb-btn,
+  .mp-post-edtools button,
+  .mp-post-foot .mp-post-copy {
+    min-width: 40px;
+  }
+
+  .mp-post-crumb-name {
+    max-width: 40vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mp-post-meta {
+    flex-wrap: nowrap;
+  }
+
+  .mp-post-meta .mp-pill {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mp-post-meta .mp-seg {
+    flex-shrink: 0;
+  }
+
   .mp-post-foot {
+    height: auto;
+    min-height: 56px;
     padding: 0 var(--mp-s3);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .mp-post-saved,
   .mp-post-copy-lbl,
-  .mp-post-crumb-name,
   .mp-post-crumb-plat,
   .mp-post-posts-lbl {
     display: none;
