@@ -4,6 +4,14 @@ export const PLATFORMS_IDS = ["telegram", "x", "dzen", "vk"] as const;
 export const platformSchema = z.enum(PLATFORMS_IDS);
 export type Platform = z.infer<typeof platformSchema>;
 
+export const LOCALES = ["ru", "en"] as const;
+export const localeSchema = z.enum(LOCALES);
+export type Locale = z.infer<typeof localeSchema>;
+
+export const LANGUAGE_IDS = ["auto", "ru", "en"] as const;
+export const languageSchema = z.enum(LANGUAGE_IDS);
+export type Language = z.infer<typeof languageSchema>;
+
 export const POST_KINDS = ["post", "article", "thread"] as const;
 export const postKindSchema = z.enum(POST_KINDS);
 export type PostKind = z.infer<typeof postKindSchema>;
@@ -82,6 +90,7 @@ export const settingsSchema = z.object({
   providerId: z.string(),
   model: z.string(),
   projectId: z.string().nullable(),
+  language: languageSchema,
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -89,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   providerId: "claude-code",
   model: "claude-opus-5-5",
   projectId: null,
+  language: "auto",
 };
 
 export const emptyTweet = (): Tweet => ({ en: "", ru: "", ruStale: false });

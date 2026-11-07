@@ -1,23 +1,18 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 import { type KickoffLocale, rpcContract } from "../shared/contract";
-import type { Post, Profile } from "../shared/model";
+import type { SessionStarter } from "./sessions";
 import type { Store } from "./store";
 
-export interface SessionStarter {
-  startProfileSession(profile: Profile, locale?: KickoffLocale): Promise<string>;
-  startPostSession(post: Post, brief: string | null, locale?: KickoffLocale): Promise<string>;
-}
-
-export const noopSessions: SessionStarter = {
-  async startProfileSession() {
-    return "";
-  },
-  async startPostSession() {
-    return "";
-  },
-};
+export type { SessionStarter };
 
 export type ChangedPayload = { profileId?: string; postId?: string };
+
+async function archiveHiddenThread(bb: BbPluginApi, threadId: string | null): Promise<void> {
+  if (threadId === null || threadId === "") return;
+  const archive = (bb.sdk.threads as { archive?: (args: { threadId: string }) => unknown }).archive;
+  if (typeof archive !== "function") return;
+  await archive({ threadId });
+}
 
 export function registerRpc(
   bb: BbPluginApi,
@@ -55,7 +50,11 @@ export function registerRpc(
       return profile;
     },
 
-    profile_delete: ({ id }) => {
+    profile_delete: async ({ id }) => {
+      const profile = store.getProfile(id);
+      const posts = store.listPosts(id);
+      await archiveHiddenThread(bb, profile.styleThreadId);
+      for (const post of posts) await archiveHiddenThread(bb, post.threadId);
       store.deleteProfile(id);
       changed({ profileId: id });
       return { id };
@@ -103,6 +102,14 @@ export function registerRpc(
       });
       changed({ profileId: post.profileId, postId: post.id });
       return post;
+    },
+
+    post_delete: async ({ id }) => {
+      const post = store.getPost(id);
+      await archiveHiddenThread(bb, post.threadId);
+      store.deletePost(id);
+      changed({ profileId: post.profileId, postId: id });
+      return { id };
     },
 
     proposal_apply: ({ id }) => {

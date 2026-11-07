@@ -23,6 +23,7 @@ async function cachedFetchTelegramChannel(channel: string, limit: number) {
 
 export const PROFILE_TOOLS = ["mp_profile_get", "mp_profile_save", "mp_fetch_telegram"] as const;
 export const POST_TOOLS = ["mp_profile_get", "mp_post_get", "mp_post_write", "mp_propose_edit"] as const;
+export type ToolName = (typeof PROFILE_TOOLS)[number] | (typeof POST_TOOLS)[number];
 
 const fail = (text: string): PluginAgentToolResult => ({ content: [{ type: "text", text }], isError: true });
 
