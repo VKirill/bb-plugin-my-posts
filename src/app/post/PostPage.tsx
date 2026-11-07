@@ -1,6 +1,6 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
 import { useEffect, useRef, useState } from "react";
-import type { Post, Tweet } from "../../shared/model";
+import type { Locale, Post, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
 import { platformLabel, platformRulesLine, t, useLocale } from "../i18n";
 import { PlatformIcon } from "../profile/icons";
@@ -90,6 +90,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   const [saveError, setSaveError] = useState<string | null>(null);
   const [sel, setSel] = useState<{ text: string; left: number; top: number } | null>(null);
 
+  const locale = useLocale();
   const split: SplitMode = splitMode(paneWidth);
   const profileName = profile.data?.name ?? "";
   const badge = chatBadge({ tweets }, proposals);
@@ -260,7 +261,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     }
   }
 
-  const timeLabel = formatTime(post.updatedAt);
+  const timeLabel = formatTime(post.updatedAt, locale);
   const crumbTitleVisible = paneWidth >= COMPACT_AT;
 
   return (
@@ -531,8 +532,8 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   );
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, locale: Locale): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }

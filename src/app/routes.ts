@@ -11,6 +11,7 @@ export type ProfileTab = "overview" | "voice";
 export type Route =
   | { kind: "home" }
   | { kind: "create-profile" }
+  | { kind: "settings" }
   | { kind: "profile"; profileId: string; tab?: ProfileTab; platform?: Platform }
   | { kind: "post"; postId: string };
 
@@ -37,6 +38,7 @@ export function parseRoute(subPath: string): Route {
   const parts = subPath.split("/").filter((part) => part !== "").map(decode);
   if (parts.length === 0) return { kind: "home" };
   if (parts[0] === "create") return { kind: "create-profile" };
+  if (parts[0] === "settings") return { kind: "settings" };
   if (parts[0] === "post" && parts[1] !== undefined) return { kind: "post", postId: parts[1] };
   if (parts[0] === "p" && parts[1] !== undefined) {
     const profileId = parts[1];
@@ -60,6 +62,8 @@ export function routePath(route: Route): string {
       return "";
     case "create-profile":
       return "create";
+    case "settings":
+      return "settings";
     case "post":
       return `post/${route.postId}`;
     case "profile": {
