@@ -1,5 +1,5 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Locale, Post, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
 import { platformLabel, platformRulesLine, t, useLocale } from "../i18n";
@@ -67,6 +67,11 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   const posts = usePosts(post.profileId);
   const rootRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const selToolbarRef = useRef<HTMLDivElement>(null);
+  const selLayoutRef = useRef<{
+    rect: { left: number; top: number; right: number; bottom: number; width: number; height: number };
+    card: { left: number; top: number; right: number; bottom: number; width: number; height: number };
+  } | null>(null);
   const pending = useRef<Partial<Draft>>({});
   const inFlight = useRef<Partial<Draft>>({});
   const timer = useRef<number | null>(null);
@@ -208,18 +213,35 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     await rpc.call("chat_send", { threadId: post.threadId, text });
   }
 
+  function measuredToolbarSize(): { width: number; height: number } {
+    const el = selToolbarRef.current;
+    return { width: el?.offsetWidth || 320, height: el?.offsetHeight || 36 };
+  }
+
   function onSelection(text: string, rect: DOMRect | null, card: DOMRect | null): void {
     if (text === "" || rect === null || card === null) {
+      selLayoutRef.current = null;
       setSel(null);
       return;
     }
     const box = (r: DOMRect) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
-    const pos = toolbarPosition(box(rect), box(card), { width: 320, height: 36 }, {
+    selLayoutRef.current = { rect: box(rect), card: box(card) };
+    const pos = toolbarPosition(selLayoutRef.current.rect, selLayoutRef.current.card, measuredToolbarSize(), {
       width: window.innerWidth,
       height: window.innerHeight,
     });
     setSel({ text, left: pos.left, top: pos.top });
   }
+
+  useLayoutEffect(() => {
+    if (sel === null || selLayoutRef.current === null) return;
+    const pos = toolbarPosition(selLayoutRef.current.rect, selLayoutRef.current.card, measuredToolbarSize(), {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+    if (pos.left === sel.left && pos.top === sel.top) return;
+    setSel({ ...sel, left: pos.left, top: pos.top });
+  }, [sel]);
 
   async function onAction(action: SelectionAction): Promise<void> {
     if (sel === null) return;
@@ -556,7 +578,14 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
         </aside>
       </div>
 
-      <SelectionToolbar hidden={sel === null} left={sel?.left ?? 0} top={sel?.top ?? 0} onAction={(action) => void onAction(action)} onAsk={() => void onAsk()} />
+      <SelectionToolbar
+        toolbarRef={selToolbarRef}
+        hidden={sel === null}
+        left={sel?.left ?? 0}
+        top={sel?.top ?? 0}
+        onAction={(action) => void onAction(action)}
+        onAsk={() => void onAsk()}
+      />
       {toast !== null ? <div className="mp-post-toast">{toast}</div> : null}
       <ConfirmDialog
         open={deletePostOpen}
