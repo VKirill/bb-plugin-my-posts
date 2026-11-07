@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const MP_CHANGED = "my-posts:changed";
+
 export const PLATFORMS_IDS = ["telegram", "x", "dzen", "vk"] as const;
 export const platformSchema = z.enum(PLATFORMS_IDS);
 export type Platform = z.infer<typeof platformSchema>;
