@@ -104,7 +104,9 @@
 
   .mp-seg {
     position: relative;
-    display: inline-flex;
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
     max-width: 100%;
     align-items: center;
     gap: 0;
@@ -121,7 +123,8 @@
     left: 3px;
     width: calc((100% - 6px) / var(--mp-seg-n, 1));
     border-radius: 6px;
-    background-color: var(--mp-card);
+    background-color: color-mix(in oklab, var(--foreground) 14%, var(--mp-card));
+    border: 1px solid var(--mp-hairline);
     box-shadow: var(--mp-raise);
     transform: translateX(calc(var(--mp-seg-i, 0) * 100%));
     transition: transform 200ms ease;
@@ -132,7 +135,10 @@
   .mp-seg-item {
     position: relative;
     z-index: 1;
-    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     border-radius: 6px;
     background: transparent;
     box-shadow: none;

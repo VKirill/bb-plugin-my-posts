@@ -85,10 +85,11 @@ export function ProfileHome({
           type="button"
           className="mp-btn"
           disabled={busy}
+          aria-label={t("rebuild")}
           onClick={() => void rebuild()}
         >
           <RefreshIcon />
-          {t("rebuild")}
+          <span className="mp-btn-label">{t("rebuild")}</span>
         </button>
         <Popover
           open={menuOpen}

@@ -226,6 +226,10 @@
   flex-shrink: 0;
 }
 
+.mp-head > * {
+  min-width: 0;
+}
+
 .mp-body {
   flex: 1;
   min-height: 0;
@@ -554,6 +558,27 @@
   .mp-empty-wrap {
     padding-left: var(--mp-gap);
     padding-right: var(--mp-gap);
+  }
+
+  .mp-head {
+    height: auto;
+    min-height: var(--mp-crumb-h);
+    padding-top: var(--mp-s2);
+    padding-bottom: var(--mp-s2);
+  }
+
+  .mp-head .mp-seg {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .mp-head .mp-btn-label {
+    display: none;
+  }
+
+  .mp-head > .mp-btn,
+  .mp-head [aria-haspopup="menu"] {
+    flex-shrink: 0;
   }
 
   .mp-switcher {
