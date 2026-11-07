@@ -147,6 +147,12 @@
   filter: brightness(1.05) saturate(1.05);
 }
 
+.mp-danger-btn {
+  border-color: transparent;
+  background-color: var(--destructive, #c0392b);
+  color: #ffffff;
+}
+
 .mp-btn:disabled,
 .mp-plat-btn:disabled {
   opacity: 0.45;

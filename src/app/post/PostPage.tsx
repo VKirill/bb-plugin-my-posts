@@ -28,6 +28,7 @@ import {
 import { Preview } from "./Preview";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { XTwins } from "./XTwins";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Popover } from "../ui/Popover";
 import { TabPanel, Tabs, Toggle } from "../ui/Segmented";
 import { COMPACT_AT } from "../ui/breakpoints";
@@ -85,12 +86,29 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
   const [keepInSync, setKeepInSync] = useState(false);
   const [previewLang, setPreviewLang] = useState<"en" | "ru">("en");
   const [postsOpen, setPostsOpen] = useState(false);
+  const [deletePostOpen, setDeletePostOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [focusChat, setFocusChat] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [sel, setSel] = useState<{ text: string; left: number; top: number } | null>(null);
 
   const locale = useLocale();
+
+  async function confirmDeletePost(): Promise<void> {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await rpc.call("post_delete", { id: post.id });
+      setDeletePostOpen(false);
+      go({ kind: "profile", profileId: post.profileId });
+    } catch (cause) {
+      setDeleteError(errorText(cause));
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
   const split: SplitMode = splitMode(paneWidth);
   const profileName = profile.data?.name ?? "";
   const badge = chatBadge({ tweets }, proposals);
@@ -365,6 +383,18 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
               <PostStatusPill status={row.status} />
             </button>
           ))}
+          <button
+            type="button"
+            className="mp-post-nav-item"
+            role="menuitem"
+            onClick={() => {
+              setPostsOpen(false);
+              setDeleteError(null);
+              setDeletePostOpen(true);
+            }}
+          >
+            {t("deletePost")}
+          </button>
         </Popover>
       </header>
 
@@ -528,6 +558,17 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
 
       <SelectionToolbar hidden={sel === null} left={sel?.left ?? 0} top={sel?.top ?? 0} onAction={(action) => void onAction(action)} onAsk={() => void onAsk()} />
       {toast !== null ? <div className="mp-post-toast">{toast}</div> : null}
+      <ConfirmDialog
+        open={deletePostOpen}
+        title={t("deletePostTitle")}
+        text={t("deletePostText", { title })}
+        confirmLabel={t("deletePost")}
+        danger
+        busy={deleteBusy}
+        error={deleteError}
+        onConfirm={() => void confirmDeletePost()}
+        onCancel={() => setDeletePostOpen(false)}
+      />
     </div>
   );
 }

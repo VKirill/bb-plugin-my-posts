@@ -48,6 +48,15 @@ const en = {
   metricPostLenValue: "{n} chars",
   sourcePasted: "Own text",
   sourceEmpty: "No source",
+  more: "More",
+  rename: "Rename",
+  renameTitle: "Rename profile",
+  save: "Save",
+  deleteProfile: "Delete profile",
+  deleteProfileTitle: "Delete profile?",
+  deletePost: "Delete post",
+  deletePostTitle: "Delete post?",
+  deletePostText: "Delete the post «{title}»? This cannot be undone.",
 };
 
 const ru: Record<keyof typeof en, string> = {
@@ -100,6 +109,15 @@ const ru: Record<keyof typeof en, string> = {
   metricPostLenValue: "{n} знаков",
   sourcePasted: "Свой текст",
   sourceEmpty: "Без источника",
+  more: "Ещё",
+  rename: "Переименовать",
+  renameTitle: "Переименовать профиль",
+  save: "Сохранить",
+  deleteProfile: "Удалить профиль",
+  deleteProfileTitle: "Удалить профиль?",
+  deletePost: "Удалить пост",
+  deletePostTitle: "Удалить пост?",
+  deletePostText: "Удалить пост «{title}»? Это нельзя отменить.",
 };
 
 export const profile = { en, ru };
