@@ -508,6 +508,11 @@
   flex-shrink: 0;
 }
 
+.mp-post-chat-open {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .mp-post-chat-ai {
   width: 24px;
   height: 24px;

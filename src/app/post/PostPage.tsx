@@ -1,4 +1,4 @@
-import { ThreadChat } from "@get-bb/plugin-sdk/app";
+import { ThreadChat, useBbNavigate } from "@get-bb/plugin-sdk/app";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Locale, Post, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
@@ -115,6 +115,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     }
   }
   const split: SplitMode = splitMode(paneWidth);
+  const navigate = useBbNavigate();
   const profileName = profile.data?.name ?? "";
   const badge = chatBadge({ tweets }, proposals);
   localRef.current = { title, body, tweets };
@@ -546,6 +547,16 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
             <span className="mp-post-avatar mp-post-chat-ai">AI</span>
             <span className="mp-post-chat-title">{t("copywriterTitle")}</span>
             {profileName !== "" ? <span className="mp-post-chat-profile"> · {profileName}</span> : null}
+            {post.threadId !== null ? (
+              <button
+                type="button"
+                className="mp-btn mp-ghost sm mp-post-chat-open"
+                title={t("openInBbHint")}
+                onClick={() => { if (post.threadId !== null) navigate.toThread(post.threadId); }}
+              >
+                {t("openInBb")}
+              </button>
+            ) : null}
           </div>
           <div className="mp-post-chat-stage">
             <div className="mp-post-chips">
@@ -567,7 +578,8 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
               ) : (
                 <ThreadChat
                   threadId={post.threadId}
-                  variant="compact"
+                  // On a phone the chat is its own tab: show it the way BB shows a chat, not as a side panel (owner 2026-11-08).
+                  variant={split === "tabs" ? "full" : "compact"}
                   layout="contained"
                   className="h-full"
                   focusRequest={focusChat}

@@ -48,6 +48,8 @@ const en = {
   readingMinutes: "{n} min read",
   copywriter: "Copywriter",
   copywriterTitle: "Copywriter",
+  openInBb: "Open in BB",
+  openInBbHint: "Open this chat as a regular BB chat, with voice input",
   langEn: "EN",
   langRu: "RU",
 };
@@ -102,6 +104,8 @@ const ru: Record<keyof typeof en, string> = {
   readingMinutes: "{n} мин чтения",
   copywriter: "Копирайтер",
   copywriterTitle: "Копирайтер",
+  openInBb: "Открыть в BB",
+  openInBbHint: "Открыть этот чат обычным чатом BB, с голосовым вводом",
   langEn: "EN",
   langRu: "RU",
 };

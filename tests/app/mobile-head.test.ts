@@ -42,9 +42,10 @@ describe("segmented tabs", () => {
     expect(app).toMatch(/\.mp-seg-thumb[\s\S]*width:\s*calc\(\(100% - 6px\) \/ var\(--mp-seg-n, 1\)\)/u);
   });
 
-  it("mixes foreground into the thumb so it reads on the well", () => {
+  it("colours the thumb with the selected accent so the chosen tab stands out (owner 2026-11-08)", () => {
     const thumb = rule(app, ".mp-seg-thumb");
-    expect(thumb).toMatch(/color-mix\(in oklab,\s*var\(--foreground\)\s+14%,\s*var\(--mp-card\)\)/);
+    expect(thumb).toMatch(/color-mix\(in oklab,\s*var\(--mp-selected\)\s+24%,\s*var\(--mp-card\)\)/);
+    expect(thumb).toMatch(/border:\s*1px\s+solid\s+color-mix\(in oklab,\s*var\(--mp-selected\)/);
     expect(thumb).toMatch(/border:\s*1px\s+solid/);
     expect(thumb).not.toMatch(/background-color:\s*var\(--mp-card\)\s*;/);
   });
