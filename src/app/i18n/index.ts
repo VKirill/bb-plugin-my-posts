@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from "react";
+import type { Platform } from "../../shared/model";
 import { core } from "./core";
 import { post } from "./post";
 import { profile } from "./profile";
+import { platformCopy } from "./platforms";
 
 const en = { ...core.en, ...profile.en, ...post.en };
 
@@ -67,4 +69,16 @@ export function useLocale(): Locale {
 /** Translate a known key. */
 export function t(key: MessageKey, vars?: Record<string, string | number>): string {
   return format(DICTIONARIES[detectLocale()][key], vars);
+}
+
+export function platformLabel(id: Platform): string {
+  return platformCopy[detectLocale()][id].label;
+}
+
+export function platformHint(id: Platform): string {
+  return platformCopy[detectLocale()][id].hint;
+}
+
+export function platformRulesLine(id: Platform): string {
+  return platformCopy[detectLocale()][id].rules;
 }

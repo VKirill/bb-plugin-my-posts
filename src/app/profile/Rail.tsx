@@ -1,19 +1,12 @@
-import { t } from "../i18n";
-import type { Platform, Post, Profile } from "../../shared/model";
-import { PLATFORMS } from "../../shared/platforms";
+import { platformLabel, t } from "../i18n";
+import type { Post, Profile } from "../../shared/model";
+import { PLATFORM_LIST } from "../../shared/platforms";
 import { railCounts } from "./model";
 import { PlatformIcon, PlusIcon } from "./icons";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { PostStatusPill } from "./pills";
 import { AgentModel } from "../settings/AgentModel";
 import { useGo, type Route } from "../routes";
-
-const PLATFORM_KEYS = {
-  telegram: "platformTelegram",
-  x: "platformX",
-  dzen: "platformDzen",
-  vk: "platformVk",
-} as const;
 
 export function Rail({
   profiles,
@@ -61,7 +54,7 @@ export function Rail({
             <span>{t("allPlatforms")}</span>
             <span className="mp-nav-count">{counts.all}</span>
           </button>
-          {PLATFORMS.map((row) => (
+          {PLATFORM_LIST.map((row) => (
             <button
               key={row.id}
               type="button"
@@ -78,7 +71,7 @@ export function Rail({
               }}
             >
               <PlatformIcon platform={row.id} />
-              <span>{t(PLATFORM_KEYS[row.id])}</span>
+              <span>{platformLabel(row.id)}</span>
               <span className="mp-nav-count">{counts[row.id]}</span>
             </button>
           ))}
@@ -106,8 +99,4 @@ export function Rail({
       <AgentModel />
     </aside>
   );
-}
-
-export function platformLabel(platform: Platform): string {
-  return t(PLATFORM_KEYS[platform]);
 }

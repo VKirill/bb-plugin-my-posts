@@ -3,12 +3,44 @@ import { countChars, PLATFORMS, platformRules, readingMinutes } from "../../src/
 
 describe("platforms", () => {
   it("lists telegram, x, dzen and vk with their limits and default kinds", () => {
-    expect(PLATFORMS).toEqual([
-      { id: "telegram", limit: 4096, defaultKind: "post" },
-      { id: "x", limit: 280, perTweet: true, maxTweets: 25, defaultKind: "thread" },
-      { id: "dzen", limit: null, defaultKind: "article" },
-      { id: "vk", limit: 16384, defaultKind: "post" },
-    ]);
+    expect(PLATFORMS).toEqual({
+      telegram: {
+        id: "telegram",
+        limit: 4096,
+        perTweet: false,
+        maxTweets: null,
+        bilingual: false,
+        kinds: ["post", "article"],
+        kickoff: { en: "Telegram", ru: "Telegram" },
+      },
+      x: {
+        id: "x",
+        limit: 280,
+        perTweet: true,
+        maxTweets: 25,
+        bilingual: true,
+        kinds: ["thread", "post"],
+        kickoff: { en: "X", ru: "X" },
+      },
+      dzen: {
+        id: "dzen",
+        limit: null,
+        perTweet: false,
+        maxTweets: null,
+        bilingual: false,
+        kinds: ["article", "post"],
+        kickoff: { en: "Dzen", ru: "Дзена" },
+      },
+      vk: {
+        id: "vk",
+        limit: 16384,
+        perTweet: false,
+        maxTweets: null,
+        bilingual: false,
+        kinds: ["post", "article"],
+        kickoff: { en: "VK", ru: "ВКонтакте" },
+      },
+    });
   });
 
   it("counts x URLs as 23 and other code points as 1", () => {

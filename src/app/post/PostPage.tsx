@@ -1,13 +1,13 @@
 import { ThreadChat } from "@get-bb/plugin-sdk/app";
 import { useEffect, useRef, useState } from "react";
-import type { Platform, Post, PostStatus, Tweet } from "../../shared/model";
+import type { Post, PostStatus, Tweet } from "../../shared/model";
 import { errorText, useMpRpc, usePost, usePosts, useProfile } from "../data";
-import { t, useLocale } from "../i18n";
+import { platformLabel, platformRulesLine, t, useLocale } from "../i18n";
 import { PlatformIcon } from "../profile/icons";
 import { useGo } from "../routes";
+import { platformDef } from "../../shared/platforms";
 import { PostScreenContext } from "./context";
 import { Editor } from "./Editor";
-import { postHeader } from "./header";
 import {
   chatBadge,
   clampChatWidth,
@@ -39,13 +39,6 @@ const STATUS_KEY: Record<PostStatus, "statusDraft" | "statusWriting" | "statusRe
   writing: "statusWriting",
   ready: "statusReady",
   published: "statusPublished",
-};
-
-const RULES_KEY: Record<Platform, "rulesTelegram" | "rulesX" | "rulesDzen" | "rulesVk"> = {
-  telegram: "rulesTelegram",
-  x: "rulesX",
-  dzen: "rulesDzen",
-  vk: "rulesVk",
 };
 
 export function PostPage({ postId }: { postId: string }) {
@@ -207,9 +200,12 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
     if (keepInSync && lang === "en") void onUpdateRu(index);
   }
 
+  const def = platformDef(post.platform);
+  const showLabel = !def.perTweet;
+  const label = platformLabel(post.platform);
+
   async function copyText(): Promise<void> {
-    const text =
-      post.platform === "x" ? tweets.map((tweet) => tweet[previewLang]).join("\n\n") : body;
+    const text = def.perTweet ? tweets.map((tweet) => tweet[previewLang]).join("\n\n") : body;
     await navigator.clipboard.writeText(text);
   }
 
@@ -225,7 +221,6 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
 
   const timeLabel = formatTime(post.updatedAt);
   const crumbTitleVisible = paneWidth >= 1280;
-  const header = postHeader(post.platform);
 
   return (
     <div
@@ -258,7 +253,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
             <span className="mp-post-tile">
               <PlatformIcon platform={post.platform} />
             </span>
-            {header.showLabel ? <span className="mp-post-crumb-plat">{header.label}</span> : null}
+            {showLabel ? <span className="mp-post-crumb-plat">{label}</span> : null}
           </button>
           {crumbTitleVisible ? (
             <>
@@ -322,7 +317,7 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
               <span className="mp-post-tile" style={{ width: 28, height: 28 }}>
                 <PlatformIcon platform={post.platform} />
               </span>
-              {header.showLabel ? <span className="mp-post-platname">{header.label}</span> : null}
+              {showLabel ? <span className="mp-post-platname">{label}</span> : null}
               <span className={`mp-pill ${STATUS_PILL[post.status]}`}>{t(STATUS_KEY[post.status])}</span>
               <span className="mp-post-grow" />
               <span className="mp-seg" role="tablist">
@@ -350,13 +345,13 @@ function PostWorkspace({ post, proposals }: { post: Post; proposals: import("../
               <div className="mp-post-rules">
                 <span className="mp-post-rule">
                   <PlatformIcon platform={post.platform} />
-                  <span>{t(RULES_KEY[post.platform])}</span>
+                  <span>{platformRulesLine(post.platform)}</span>
                 </span>
               </div>
-              {mode === "editor" && post.platform !== "x" ? (
+              {mode === "editor" && !def.perTweet ? (
                 <Editor platform={post.platform} value={body} onChange={(next) => { setBody(next); schedule({ body: next }); }} onSelection={onSelection} cardRef={cardRef} />
               ) : null}
-              {mode === "editor" && post.platform === "x" ? (
+              {mode === "editor" && def.perTweet ? (
                 <XTwins
                   tweets={tweets}
                   keepInSync={keepInSync}

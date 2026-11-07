@@ -261,8 +261,9 @@ export class Store {
     body?: string;
   }): Post {
     this.getProfile(input.profileId);
-    const kind = input.kind ?? platformDef(input.platform).defaultKind;
-    const tweets = input.platform === "x" ? [emptyTweet()] : [];
+    const def = platformDef(input.platform);
+    const kind = input.kind ?? def.kinds[0];
+    const tweets = def.perTweet ? [emptyTweet()] : [];
     const id = newId("pst_");
     const at = now();
     this.db
